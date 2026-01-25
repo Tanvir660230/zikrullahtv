@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zikrullah TV LLC | Financial Management Dashboard</title>
+    <meta name="description"
+        content="Secure and professional financial tracking for Zikrullah TV LLC. Manage USD/BDT transactions, liquidity, and CEO reports with a premium fintech interface.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="./src/styles/index.css">
+    <!-- Print Styles (Loaded globally for screen preview, restricted by @media print inside) -->
+    <link rel="stylesheet" href="./src/styles/print.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <h1>Zikrullah TV LLC</h1>
+                <div class="month-navigator">
+                    <button id="prevMonthBtn" class="nav-arrow" title="Previous Month">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                        </svg>
+                    </button>
+                    <div class="nav-inputs">
+                        <select id="monthSelect" class="nav-select">
+                            <!-- Populated by JS -->
+                        </select>
+                        <input type="number" id="yearInput" class="nav-year" min="2000" max="2100">
+                    </div>
+                    <button id="nextMonthBtn" class="nav-arrow" title="Next Month">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <div id="connectionStatus" class="status-badge-v2 pending"
+                    style="margin-right: 1rem; font-size: 0.75rem;">
+                    Connecting...
+                </div>
+                <!-- Buttons -->
+                <button id="openReportModalBtn" class="btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
+                    <span>CEO Report</span>
+                </button>
+                <button id="logoutBtn" class="icon-btn" title="Logout"
+                    style="border-color: var(--color-danger); color: var(--color-danger);">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                    </svg>
+                </button>
+                <button id="openSettingsBtn" class="settings-btn icon-btn" title="Settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Navigation -->
+        <div class="main-nav-container">
+            <nav class="main-nav">
+                <button id="navDashboard" class="nav-item active">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                    </svg>
+                    Dashboard
+                </button>
+                <button id="navMoneyIn" class="nav-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Money In
+                </button>
+                <button id="navMoneyOut" class="nav-item">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                    </svg>
+                    Money Out
+                </button>
+            </nav>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboardView">
+            <div class="dashboard-grid">
+                <!-- Liquidity Section -->
+                <div class="card card-liquidity">
+                    <div class="card-icon indigo">
+                        <!-- Wallet Icon -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5a.75.75 0 0 1 .75-.75h.75m-1.5 1.5v12.75c0 .621-.504 1.125-1.125 1.125H12m1.5-15h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375A1.125 1.125 0 0 1 12 5.25V6.75m-3-1.5h.375A1.125 1.125 0 0 1 9 5.25V6.75m-3-1.5h.375A1.125 1.125 0 0 1 6 5.25V6.75m-3-1.5h.375a1.125 1.125 0 0 1 1.125 1.125V6.75" />
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Cash Balance</div>
+                        <div class="card-value-display">
+                            <div class="currency-row usd-row">
+                                <span class="currency-label">USD</span>
+                                <span class="currency-val usd" id="liqUSD">$0.00</span>
+                            </div>
+                            <div class="currency-row bdt-row">
+                                <span class="currency-label">BDT</span>
+                                <span class="currency-val bdt indigo" id="liqBDT">৳0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Activity -->
+                <div class="card">
+                    <div class="card-icon green">
+                        <!-- Arrow Down Tray -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="m9 12.75 3 3m0 0 3-3m-3 3v-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Monthly Receipts</div>
+                        <div class="card-value-display">
+                            <div class="currency-row usd-row">
+                                <span class="currency-label">USD</span>
+                                <span class="currency-val usd" id="monthReceipts">$0.00</span>
+                            </div>
+                            <div class="currency-row bdt-row">
+                                <span class="currency-label">BDT</span>
+                                <span class="currency-val bdt green" id="monthReceiptsBDT">৳0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon orange">
+                        <!-- Arrow Up Tray -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Monthly Outflow</div>
+                        <div class="card-value-display">
+                            <div class="currency-row usd-row">
+                                <span class="currency-label">USD</span>
+                                <span class="currency-val usd" id="monthDisbursements">$0.00</span>
+                            </div>
+                            <div class="currency-row bdt-row">
+                                <span class="currency-label">BDT</span>
+                                <span class="currency-val bdt orange" id="monthDisbursementsBDT">৳0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cash Flow Summary Section -->
+            <div id="cashflowSummary" class="summary-container" style="margin-top: 1rem;">
+                <!-- Dynamic cards will be rendered here by app.js -->
+            </div>
+        </div>
+
+        <!-- Incoming Funds Tab (Now a Main View) -->
+        <div id="incomingTab" class="tab-content" style="display: none;">
+            <div class="action-bar">
+                <div class="search-wrapper">
+                    <input type="text" id="incSearch" placeholder="Search transactions...">
+                </div>
+                <div class="action-buttons">
+                    <button id="manageSourcesBtn" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                        </svg>
+                        Payers
+                    </button>
+                    <button id="exportIncBtn" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        CSV
+                    </button>
+                    <button id="openIncModalBtn" class="btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Money In
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="incomingTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="date" title="Sort by Date">Date</th>
+                            <th class="sortable" data-sort="source" title="Sort by Payer">Payer</th>
+                            <th class="sortable" data-sort="subType" title="Sort by Type">Action</th>
+                            <th class="sortable" data-sort="amountUSD" title="Sort by USD">Amount (USD)</th>
+                            <th class="sortable" data-sort="amountBDT" title="Sort by BDT">Amount (BDT)</th>
+                            <th class="sortable" data-sort="rate" title="Sort by Rate">Rate</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Disbursements Tab -->
+        <div id="outgoingTab" class="tab-content" style="display: none;">
+            <div class="action-bar">
+                <div class="search-wrapper">
+                    <input type="text" id="outSearch" placeholder="Search transactions...">
+                </div>
+                <div class="action-buttons">
+                    <button id="manageBeneficiariesBtn" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                        </svg>
+                        Receivers
+                    </button>
+                    <button id="exportOutBtn" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        CSV
+                    </button>
+                    <button id="openOutModalBtn" class="btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                        </svg>
+                        Money Out
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="outgoingTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="date" title="Sort by Date">Date</th>
+                            <th class="sortable" data-sort="beneficiaryId" title="Sort by Receiver">Receiver</th>
+                            <th class="sortable" data-sort="amountUSD" title="Sort by USD">Amount (USD)</th>
+                            <th class="sortable" data-sort="amountBDT" title="Sort by BDT">Amount (BDT)</th>
+                            <th class="sortable" data-sort="status" title="Sort by Status">Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Payment Overview Section -->
+        <div class="section-header">
+            <h3>Payment Overview</h3>
+        </div>
+        <div class="dashboard-grid">
+            <div class="card">
+                <div class="card-icon bg-orange-light text-orange">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <div class="card-label">Pending Payments</div>
+                    <div class="card-value" id="statsPendingCount">0</div>
+                    <div class="card-value-sub" id="statsPendingAmount">৳0.00</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon bg-green-light text-green">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <div class="card-label">Paid This Month</div>
+                    <div class="card-value" id="statsPaidCount">0</div>
+                    <div class="card-value-sub" id="statsPaidAmount">৳0.00</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon bg-indigo-light text-indigo">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                    </svg>
+                </div>
+                <div class="card-content">
+                    <div class="card-label">Active Receivers</div>
+                    <div class="card-value" id="statsReceiversCount">0</div>
+                    <div class="card-value-sub">Total Beneficiaries</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Incoming Transaction Modal -->
+    <div id="incomingModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Money In Record</h3>
+                <button class="close-btn" id="closeIncModal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <form id="incomingForm" class="form-grid">
+                    <input type="hidden" id="incId">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" name="date" required id="incDate" class="input-lg">
+                    </div>
+                    <div class="form-group">
+                        <label>Action</label>
+                        <select name="subType" id="incType" class="input-lg">
+                            <option value="receive">Receive (+)</option>
+                            <option value="return">Return (-)</option>
+                        </select>
+                    </div>
+                    <!-- Full width for source -->
+                    <div class="form-group full-width">
+                        <label>Payer (Source)</label>
+                        <select name="source" id="incSource" required class="input-lg">
+                            <option value="">Select Payer</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>USD Amount ($)</label>
+                        <input type="number" step="0.01" name="amountUSD" id="incUSD" class="input-lg">
+                    </div>
+                    <div class="form-group">
+                        <label>BDT Amount (৳)</label>
+                        <input type="number" step="0.01" name="amountBDT" id="incBDT" class="input-lg">
+                    </div>
+                    <div class="form-group">
+                        <label>Rate</label>
+                        <input type="number" step="0.01" name="rate" id="incRate" placeholder="Ex: 120.5"
+                            class="input-lg">
+                    </div>
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary full-width">Add Record</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outgoing Transaction Modal -->
+    <div id="outgoingModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Money Out Record</h3>
+                <button class="close-btn" id="closeOutModal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <form id="outgoingForm" class="form-grid">
+                    <input type="hidden" id="outId">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" name="date" required id="outDate" class="input-lg">
+                    </div>
+                    <div class="form-group">
+                        <label>Rate</label>
+                        <input type="number" step="0.01" name="rate" id="outRate" class="input-lg">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Receiver (Beneficiary)</label>
+                        <select name="beneficiaryId" id="outBeneficiary" required class="input-lg">
+                            <option value="">Select Receiver</option>
+                        </select>
+                        <div id="bankPreview" class="bank-preview"
+                            style="display: none; margin-top: 1rem; padding: 1rem; background: var(--brand-light); border-radius: var(--radius-md); border: 1px solid var(--brand-primary);">
+                            <div style="font-weight: 700; color: var(--brand-primary);" id="prevDisplayName">Receiver
+                                Name</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);" id="prevBankName">Bank Name
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted); font-family: monospace;"
+                                id="prevAccNo">Acc: ***</div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>USD Amount ($)</label>
+                        <input type="number" step="0.01" name="amountUSD" id="outUSD" class="input-lg">
+                    </div>
+                    <div class="form-group">
+                        <label>BDT Amount (৳)</label>
+                        <input type="number" step="0.01" name="amountBDT" id="outBDT" class="input-lg">
+                    </div>
+                    <div class="form-group full-width">
+                        <button type="submit" class="btn-primary full-width">Create Pending Order</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="close-btn" id="closeSettingsModal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <form id="settingsForm">
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label>Opening Balance (USD)</label>
+                        <input type="number" step="0.01" id="setOpeningUSD" class="input-lg">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <label>Opening Balance (BDT)</label>
+                        <input type="number" step="0.01" id="setOpeningBDT" class="input-lg">
+                    </div>
+                    <button type="button" id="clearDataBtn" class="btn-secondary"
+                        style="width: 100%; margin-bottom: 1rem; border-color: var(--color-danger); color: var(--color-danger); border-radius: var(--radius-md);">⚠
+                        Reset All Data</button>
+                    <button type="button" id="downloadBackupBtn" class="btn-secondary"
+                        style="width: 100%; margin-bottom: 1rem; border-color: var(--brand-primary); color: var(--brand-primary); border-radius: var(--radius-md);">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" class="w-4 h-4" style="margin-right:0.5rem">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        Download Full Backup (JSON)
+                    </button>
+                    <button type="submit" class="btn-primary" style="width: 100%;">Save Settings</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Payers (Sources) Modal -->
+    <div id="sourcesModal" class="modal-overlay">
+        <div class="modal large-modal">
+            <div class="modal-header">
+                <h3>Manage Payers</h3>
+                <button class="close-btn" id="closeSourcesModal">&times;</button>
+            </div>
+
+            <div class="modal-content">
+                <div class="management-container">
+                    <form id="addSourceForm" class="pro-form" style="margin-bottom: 2rem;">
+                        <!-- Primary ID -->
+                        <div class="form-group full-width">
+                            <label>Payer Name <span class="text-sub">(Client / Source)</span></label>
+                            <div style="display: flex; gap: 1rem;">
+                                <input type="text" name="name" required placeholder="Ex: Upwork Client" class="input-lg"
+                                    style="flex: 1;">
+                                <button type="submit" class="btn-primary">Add Payer</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="form-section-title">Active Payers List</div>
+                    <div id="sourcesList" class="data-list pro-list">
+                        <!-- List items will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Receivers (Beneficiaries) Modal -->
+    <div id="beneficiariesListModal" class="modal-overlay">
+        <div class="modal large-modal">
+            <div class="modal-header">
+                <h3>Manage Receivers</h3>
+                <button class="close-btn" id="closeBenListModal">&times;</button>
+            </div>
+
+            <div class="modal-content">
+                <div class="action-bar" style="margin-bottom: 1.5rem;">
+                    <button id="openAddBenModalBtn" class="btn-primary full-width">+ Add New Receiver</button>
+                </div>
+
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table id="beneficiariesTable" class="beneficiaries-table">
+                        <thead>
+                            <tr>
+                                <th>Nickname</th>
+                                <th>Account Name</th>
+                                <th>Bank Name</th>
+                                <th>Account No</th>
+                                <th style="width: 80px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Receiver Modal -->
+    <div id="beneficiaryModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="benModalTitle">Add Receiver</h3>
+                <button class="close-btn" id="closeBenModal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <form id="beneficiaryForm" class="pro-form">
+                    <input type="hidden" name="id" id="benId">
+
+                    <!-- Primary ID -->
+                    <div class="form-group full-width">
+                        <label>Receiver Nickname <span class="text-sub">(Internal Display Name)</span></label>
+                        <input type="text" name="nickname" id="benNickname" required placeholder="Ex: Tanvir Bhai"
+                            class="input-lg">
+                    </div>
+
+                    <!-- Banking Details Group -->
+                    <div class="form-section-title">Banking Information</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Bank Name</label>
+                            <input type="text" name="bankName" id="benBankName" required
+                                placeholder="Ex: Dutch Bangla Bank" class="input-lg">
+                        </div>
+                        <div class="form-group">
+                            <label>Branch Name</label>
+                            <input type="text" name="branch" id="benBranch" placeholder="Ex: Gulshan Branch"
+                                class="input-lg">
+                        </div>
+                    </div>
+
+                    <!-- Account Items Group -->
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Account Name</label>
+                            <input type="text" name="accountName" id="benAccountName" required
+                                placeholder="Ex: MD TANVIR KHAN" class="input-lg">
+                        </div>
+                        <div class="form-group">
+                            <label>Account Number</label>
+                            <input type="text" name="accountNo" id="benAccountNo" required
+                                placeholder="Ex: 123.456.7890" class="input-lg">
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary"
+                            onclick="document.getElementById('beneficiaryModal').classList.remove('open')">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Receiver Details</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Report Modal (Printable) -->
+    <div id="reportModal" class="modal-overlay">
+        <div class="modal large-modal report-modal-content">
+            <div class="modal-header no-print">
+                <h3>Monthly Executive Report</h3>
+                <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button id="printReportBtn" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+                        </svg>
+                        Print Report
+                    </button>
+                    <button id="downloadReportBtn" class="btn-secondary"
+                        style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        Export CSV
+                    </button>
+                    <button class="btn-secondary" id="closeReportModal">
+                        Close
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-content">
+                <!-- Professional Header -->
+                <div class="inv-header">
+                    <div class="inv-brand">
+                        <h1 class="corp-title">Zikrullah TV LLC</h1>
+                        <p class="corp-subtitle">EXECUTIVE FINANCIAL OPERATIONS REPORT</p>
+                        <div class="corp-address">
+                            Global Operations Center<br>
+                            Financial Services Division
+                        </div>
+                    </div>
+                    <div class="inv-meta">
+                        <div class="inv-meta-item">
+                            <span class="inv-label">REPORT PERIOD</span>
+                            <span class="inv-value" id="repMonth">Loading...</span>
+                        </div>
+                        <div class="inv-meta-item" style="margin-top: 1.5rem;">
+                            <span class="inv-label">GENERATED ON</span>
+                            <span class="inv-value" id="repGenDate">--/--/----</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Strategic Performance Insights -->
+                <div class="report-section insights-section">
+                    <h4 class="report-section-title">Strategic Performance Insights</h4>
+                    <div class="insights-container">
+                        <p id="repInsights" class="insights-p">
+                            Initialing financial analysis for the selected period...
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Executive Summary -->
+                <div class="report-section">
+                    <h4 class="report-section-title">Executive Summary</h4>
+                    <div class="summary-grid">
+                        <div class="sum-card">
+                            <span class="sum-label">Opening Balance</span>
+                            <span class="sum-val" id="repOpening">BDT 0.00</span>
+                            <span class="sum-val-sub" id="repOpeningUSD">$0.00</span>
+                        </div>
+                        <div class="sum-card">
+                            <span class="sum-label text-green">Total Money In (+)</span>
+                            <span class="sum-val text-green" id="repTotalIn">BDT 0.00</span>
+                            <span class="sum-val-sub" id="repTotalInUSD">$0.00</span>
+                        </div>
+                        <div class="sum-card">
+                            <span class="sum-label text-orange">Total Money Out (-)</span>
+                            <span class="sum-val text-orange" id="repTotalOut">BDT 0.00</span>
+                            <span class="sum-val-sub" id="repTotalOutUSD">$0.00</span>
+                        </div>
+                        <div class="sum-card highlight">
+                            <span class="sum-label">Closing Balance</span>
+                            <span class="sum-val" id="repClosing">BDT 0.00</span>
+                            <span class="sum-val-sub" id="repClosingUSD">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cash Flow Breakdown -->
+                <div class="report-row">
+                    <!-- Money In Section -->
+                    <div class="report-col">
+                        <h4 class="report-section-title">Money In (Payers)</h4>
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Payer Name</th>
+                                    <th class="text-right">USD Amount</th>
+                                    <th class="text-right">BDT Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repInBody">
+                                <!-- Dynamic Content -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td><strong>Total</strong></td>
+                                    <td class="text-right"><strong id="repInTotalUSD">$0.00</strong></td>
+                                    <td class="text-right"><strong id="repInTotal">BDT 0.00</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Money Out Section -->
+                    <div class="report-col">
+                        <h4 class="report-section-title">Money Out (Receivers)</h4>
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Receiver Name</th>
+                                    <th class="text-right">USD Amount</th>
+                                    <th class="text-right">BDT Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repOutBody">
+                                <!-- Dynamic Content -->
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td><strong>Total</strong></td>
+                                    <td class="text-right"><strong id="repOutTotalUSD">$0.00</strong></td>
+                                    <td class="text-right"><strong id="repOutTotal">BDT 0.00</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Net Cash Flow Indicator -->
+                <div class="report-section" style="margin-top: 2rem;">
+                    <div class="net-flow-box-premium">
+                        <div class="net-flow-data">
+                            <span class="net-flow-label">Monthly Net Performance</span>
+                            <div class="net-flow-values">
+                                <strong id="repNetFlow">BDT 0.00</strong>
+                                <span id="repNetFlowUSD">$0.00</span>
+                            </div>
+                        </div>
+                        <div id="repStatusBadge" class="status-badge-v2 surplus">SURPLUS</div>
+                    </div>
+                </div>
+
+                <!-- Verification & Approval -->
+                <div class="report-footer-v2">
+                    <div class="sig-block">
+                        <div class="sig-line"></div>
+                        <span class="sig-title">Prepared by CFO / Internal Audit</span>
+                    </div>
+                    <div class="sig-block">
+                        <div class="sig-line"></div>
+                        <span class="sig-title">CEO Approval & Verification</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay login-overlay">
+        <div class="modal login-modal">
+            <div class="modal-header login-header">
+                <h3>Welcome Back</h3>
+            </div>
+            <p class="login-subtitle">Please enter password to access dashboard</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <input type="password" id="loginPassword" placeholder="Enter Password" class="input-lg login-input"
+                        required>
+                </div>
+                <button type="submit" class="btn-primary full-width login-btn">Unlock Access</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Scripts -->
+
+    <script type="module" src="./src/app.js"></script>
+</body>
+
+</html>

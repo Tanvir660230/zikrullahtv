@@ -1,0 +1,319 @@
+/* =========================================
+   Report & Print Styles (Premium REIMAGINED)
+   ========================================= */
+
+:root {
+    --report-bg: #ffffff;
+    --report-text: #1e293b;
+    --report-muted: #64748b;
+    --report-border: #e2e8f0;
+    --report-brand: #10b981;
+}
+
+/* 1. Global Container */
+.report-modal-content {
+    background: var(--report-bg);
+    padding: 3rem;
+    font-family: 'Manrope', sans-serif;
+    color: var(--report-text);
+}
+
+/* 2. Professional Header */
+.corp-title {
+    font-size: 2.75rem;
+    font-weight: 800;
+    color: var(--report-brand);
+    letter-spacing: -0.04em;
+    margin: 0;
+    line-height: 1;
+}
+
+.corp-subtitle {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--report-muted);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-top: 0.75rem;
+}
+
+.corp-address {
+    font-size: 0.75rem;
+    color: var(--report-muted);
+    line-height: 1.6;
+    margin-top: 1rem;
+}
+
+.inv-meta {
+    text-align: right;
+}
+
+.inv-meta-item .inv-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--report-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.inv-meta-item .inv-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--report-text);
+}
+
+/* 3. Strategic Insights */
+.insights-section {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 2rem;
+    border: 1px solid var(--report-border);
+    margin: 2.5rem 0;
+}
+
+.insights-p {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #475569;
+    margin: 0;
+}
+
+.insights-p strong {
+    color: var(--report-text);
+    font-weight: 700;
+}
+
+/* 4. Executive Summary Grid */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.sum-card {
+    padding: 1.5rem;
+    border-radius: 8px;
+    background: white;
+    border: 1px solid var(--report-border);
+}
+
+.sum-card.highlight {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.sum-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--report-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.75rem;
+}
+
+.sum-val {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--report-text);
+    display: block;
+    line-height: 1.1;
+}
+
+.sum-val-sub {
+    font-size: 0.85rem;
+    color: var(--report-muted);
+    margin-top: 0.25rem;
+    display: block;
+}
+
+/* 5. Tables & Data */
+.report-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin-bottom: 3rem;
+}
+
+.report-section-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--report-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.report-table th {
+    font-size: 0.65rem;
+    text-align: left;
+    color: var(--report-muted);
+    padding: 0.75rem 0;
+    border-bottom: 2px solid var(--report-border);
+    text-transform: uppercase;
+}
+
+.report-table td {
+    padding: 0.85rem 0;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.report-table tfoot td {
+    padding-top: 1rem;
+    border-top: 2px solid var(--report-border);
+    font-weight: 800;
+}
+
+.text-right {
+    text-align: right !important;
+}
+
+/* 6. Net Performance Indicator */
+.net-flow-box-premium {
+    background: #1e293b;
+    color: white;
+    border-radius: 12px;
+    padding: 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.net-flow-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #94a3b8;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.net-flow-values strong {
+    font-size: 2.25rem;
+    font-weight: 800;
+    display: block;
+    line-height: 1;
+}
+
+.net-flow-values span {
+    font-size: 1.15rem;
+    color: #94a3b8;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.status-badge-v2 {
+    font-size: 1.25rem;
+    font-weight: 900;
+    padding: 0.75rem 2.5rem;
+    border-radius: 100px;
+    letter-spacing: 0.1em;
+}
+
+.status-badge-v2.surplus {
+    background: #10b981;
+    color: white;
+}
+
+.status-badge-v2.shortage {
+    background: #f43f5e;
+    color: white;
+}
+
+/* 7. Footer & Signatures */
+.report-footer-v2 {
+    margin-top: 6rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10rem;
+}
+
+.sig-block {
+    text-align: center;
+}
+
+.sig-line {
+    border-top: 1px solid var(--report-text);
+    margin-bottom: 0.75rem;
+}
+
+.sig-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--report-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* 8. Print Optimization */
+@media print {
+
+    /* Hide all app container elements */
+    body>* {
+        display: none !important;
+    }
+
+    /* Only show the report modal */
+    #reportModal {
+        display: block !important;
+        visibility: visible !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: white !important;
+        z-index: 9999;
+    }
+
+    /* Ensure content is visible */
+    #reportModal * {
+        visibility: visible !important;
+    }
+
+    /* Reset Container Styles */
+    .report-modal-content {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: white !important;
+        color: black !important;
+    }
+
+    /* Hide Controls */
+    .no-print,
+    .header-actions,
+    .btn-secondary,
+    button {
+        display: none !important;
+    }
+
+    /* Type color adjustments */
+    body {
+        margin: 0;
+        padding: 0;
+        background: white !important;
+        color: black !important;
+    }
+
+    /* Page Margin Reset */
+    @page {
+        margin: 1.5cm;
+        size: auto;
+    }
+}
