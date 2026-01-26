@@ -944,10 +944,8 @@ function renderBeneficiariesList(beneficiaries) {
 
             // Name Column
             const tdName = document.createElement('td');
+            tdName.setAttribute('data-label', 'Nickname');
             tdName.style.fontWeight = '500';
-            tdName.style.display = 'flex';
-            tdName.style.alignItems = 'center';
-            tdName.style.gap = '0.75rem';
 
             const nameLink = document.createElement('span');
             nameLink.className = 'receiver-link-action';
@@ -975,15 +973,18 @@ function renderBeneficiariesList(beneficiaries) {
 
             // Account Name
             const tdAccName = document.createElement('td');
+            tdAccName.setAttribute('data-label', 'Account Name');
             tdAccName.className = 'text-sub';
             tdAccName.textContent = b.accountName || '-';
 
             // Bank Name
             const tdBank = document.createElement('td');
+            tdBank.setAttribute('data-label', 'Bank');
             tdBank.innerHTML = `<div style="font-weight: 500;">${b.bankName || '-'}</div><div class="text-sub" style="font-size: 0.8rem;">${b.branch || ''}</div>`;
 
             // Account No
             const tdAccNo = document.createElement('td');
+            tdAccNo.setAttribute('data-label', 'Account No');
             tdAccNo.style.fontFamily = 'monospace';
             tdAccNo.textContent = b.accountNo || '-';
 
@@ -1132,11 +1133,11 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
         incTxs.forEach(tx => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${tx.date}</td>
-                <td>${tx.source}</td>
-                <td><span class="badge ${tx.subType === 'receive' ? 'bg-green-light text-green' : 'bg-orange-light text-orange'}">${tx.subType === 'receive' ? 'Receive' : 'Return'}</span></td>
-                <td class="amount-column">${fmtUSD(tx.amountUSD)}</td>
-                <td class="amount-column">
+                <td data-label="Date">${tx.date}</td>
+                <td data-label="Payer">${tx.source}</td>
+                <td data-label="Action"><span class="badge ${tx.subType === 'receive' ? 'bg-green-light text-green' : 'bg-orange-light text-orange'}">${tx.subType === 'receive' ? 'Receive' : 'Return'}</span></td>
+                <td data-label="Amount (USD)" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
+                <td data-label="Amount (BDT)" class="amount-column">
                     <div class="amount-wrapper">
                         <span>${fmtBDT(tx.amountBDT)}</span>
                         <button class="icon-btn copy-amount-btn" data-amount="${tx.amountBDT}" title="Copy BDT">
@@ -1144,8 +1145,8 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
                         </button>
                     </div>
                 </td>
-                <td class="text-right">${tx.rate}</td>
-                <td><span class="badge ${tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-green-light text-green'}">${tx.status || 'received'}</span></td>
+                <td data-label="Rate" class="text-right">${tx.rate}</td>
+                <td data-label="Status"><span class="badge ${tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-green-light text-green'}">${tx.status || 'received'}</span></td>
                 <td class="actions-cell">
                    <button class="icon-btn edit-tx-btn" data-id="${tx.id}" title="Edit">
                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
@@ -1186,12 +1187,12 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${tx.date}</td>
-                <td>
+                <td data-label="Date">${tx.date}</td>
+                <td data-label="Receiver">
                     <span class="receiver-link" data-id="${tx.beneficiaryId}" style="cursor:pointer; text-decoration:underline;">${benName}</span>
                 </td>
-                <td class="amount-column">${fmtUSD(tx.amountUSD)}</td>
-                <td class="amount-column">
+                <td data-label="Amount (USD)" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
+                <td data-label="Amount (BDT)" class="amount-column">
                     <div class="amount-wrapper">
                         <span>${fmtBDT(tx.amountBDT)}</span>
                         <button class="icon-btn copy-amount-btn" data-amount="${tx.amountBDT}" title="Copy BDT">
@@ -1199,7 +1200,7 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
                         </button>
                     </div>
                 </td>
-                <td><span class="badge ${statusClass}">${tx.status}</span></td>
+                <td data-label="Status"><span class="badge ${statusClass}">${tx.status}</span></td>
                 <td class="actions-cell">
                     ${tx.status === 'pending' ? `<button class="icon-btn pay-btn" data-id="${tx.id}" title="Mark Paid">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -1441,7 +1442,7 @@ function renderProjectedCashflow(transactions, liquidity, settings) {
         <div class="section-header">
             <h3>Projected Cashflow</h3>
         </div>
-        <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr) !important;">
+        <div class="dashboard-grid">
             <div class="card">
                 <div class="card-icon indigo">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
