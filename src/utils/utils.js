@@ -36,10 +36,4 @@ export function showToast(message, type = 'info') {
     }, 3000);
 }
 
-// Password Hashing Utility
-export async function hashPassword(message) {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+

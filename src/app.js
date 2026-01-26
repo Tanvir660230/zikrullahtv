@@ -1,5 +1,5 @@
 import { store } from './store/store.js';
-import { fmtUSD, fmtBDT, showToast, debounce, hashPassword } from './utils/utils.js';
+import { fmtUSD, fmtBDT, showToast, debounce } from './utils/utils.js';
 
 // Elements Map
 const els = {
@@ -18,6 +18,8 @@ const els = {
     monthReceiptsBDT: document.getElementById('monthReceiptsBDT'),
     monthDisbursements: document.getElementById('monthDisbursements'),
     monthDisbursementsBDT: document.getElementById('monthDisbursementsBDT'),
+    outLiqUSD: document.getElementById('outLiqUSD'),
+    outLiqBDT: document.getElementById('outLiqBDT'),
 
     // Stats
     statsPendingCount: document.getElementById('statsPendingCount'),
@@ -142,7 +144,10 @@ const els = {
     // Login
     loginModal: document.getElementById('loginModal'),
     loginForm: document.getElementById('loginForm'),
-    loginPassword: document.getElementById('loginPassword')
+    loginPassword: document.getElementById('loginPassword'),
+    logoutBtn: document.getElementById('logoutBtn'),
+    settingsHeaderTitle: document.getElementById('settingsHeaderTitle'),
+    clearDataBtn: document.getElementById('clearDataBtn')
 };
 
 // Start
@@ -170,10 +175,15 @@ async function initApp() {
         store.subscribe(render);
         checkLoginStatus();
 
-        // Check DB Connection (Await to ensure UI status updates)
-        console.log('App: Verifying data bridge status...');
-        await updateConnectionStatus();
-        console.log('App: Initialization sequence complete.');
+        // Check DB Connection (Async - Don't block UI)
+        console.log('App: Verifying data bridge status in background...');
+        updateConnectionStatus();
+
+        // Listen for real-time network changes
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        console.log('App: UI Initialization complete.');
     } catch (error) {
         console.error('App init failed:', error);
         alert('Critical error during app initialization. Please check the console.\nDetail: ' + error.message);
@@ -184,10 +194,23 @@ async function updateConnectionStatus() {
     const statusEl = document.getElementById('connectionStatus');
     if (!statusEl) return;
 
+    // 1. Check Browser Network Status first
+    if (!navigator.onLine) {
+        statusEl.textContent = 'Offline';
+        statusEl.className = 'status-badge-v2 danger';
+        statusEl.style.background = '#fef2f2';
+        statusEl.style.color = '#991b1b';
+        statusEl.title = 'No Internet Connection';
+        showToast('You are currently Offline. Changes will not be saved.', 'error');
+        return;
+    }
+
     try {
-        console.log('App: Checking data connection...');
+        console.log('App: Checking Cloud connection...');
         const { db } = await import('./services/db.js');
-        const isOnline = await db.initPromise;
+        const status = await db.initPromise;
+        const isOnline = status.online;
+        const errorMsg = status.error;
 
         if (isOnline) {
             statusEl.textContent = 'Online';
@@ -195,13 +218,21 @@ async function updateConnectionStatus() {
             statusEl.title = 'Connected to Firebase Cloud Sync';
             console.log('App: Data connection established (Cloud Mode)');
         } else {
-            statusEl.textContent = 'Offline';
-            statusEl.className = 'status-badge-v2 warning';
-            statusEl.style.background = '#fff7ed';
-            statusEl.style.color = '#c2410c';
-            statusEl.title = 'Using Local Storage (Changes saved to this device only)';
-            console.log('App: Data connection failed. Operating in Offline Mode (Local Storage)');
-            showToast('Running in Offline Mode (Local Storage)', 'info');
+            statusEl.textContent = 'Disconnected';
+            statusEl.className = 'status-badge-v2 danger';
+            statusEl.style.background = '#fef2f2';
+            statusEl.style.color = '#991b1b';
+            statusEl.title = 'Connection Failed: ' + (errorMsg || 'Unknown Error');
+            console.warn('App: Cloud connection failed:', errorMsg);
+
+            // Show more helpful error to user
+            if (errorMsg && errorMsg.includes('Anonymous Login')) {
+                showToast('SETUP REQUIRED: Enable Anonymous Login in Firebase Console.', 'error', 15000);
+            } else if (errorMsg && errorMsg.includes('Rules')) {
+                showToast('SETUP REQUIRED: Update Firebase Rules. See FIREBASE_SETUP.md', 'error', 15000);
+            } else {
+                showToast('Database Error: ' + (errorMsg || 'Check your internet connection'), 'error', 10000);
+            }
         }
     } catch (err) {
         console.error('App: Critical connection check failure:', err);
@@ -212,13 +243,15 @@ async function updateConnectionStatus() {
 }
 
 function checkLoginStatus() {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    if (isLoggedIn === 'true') {
+    const isAuth = sessionStorage.getItem('isAuth') === 'true';
+    if (isAuth) {
         els.loginModal.classList.remove('open');
         els.loginModal.style.display = 'none';
+        els.logoutBtn.style.display = 'flex';
     } else {
         els.loginModal.classList.add('open');
         els.loginModal.style.display = 'flex';
+        els.logoutBtn.style.display = 'none';
     }
 }
 
@@ -279,31 +312,55 @@ function setupEventListeners() {
     els.navMoneyOut.addEventListener('click', () => updateNav('money-out'));
 
     // --- Login ---
-    els.loginForm.addEventListener('submit', async (e) => {
+    els.loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        try {
-            const password = els.loginPassword.value.trim();
-            const passwordHash = await hashPassword(password);
-            const storedHash = '6b5856cdc03e4b4fd67c58053b50b0c5f01cac7d3f796f8c2d38aa23c9c601ea'; // SHA-256 for 'admin123#'
-
-            if (passwordHash === storedHash) {
-                localStorage.setItem('isLoggedIn', 'true');
-                // Ensure the modal is hidden
-                els.loginModal.classList.remove('open');
-                els.loginModal.style.display = 'none'; // Force hide
-                showToast('Welcome back!', 'success');
-            } else {
-                showToast('Incorrect Password', 'error');
-                els.loginPassword.value = '';
-                els.loginPassword.focus();
-            }
-        } catch (err) {
-            console.error('Login error:', err);
-            showToast('Login failed. Please try again.', 'error');
+        const pwd = els.loginPassword.value;
+        if (pwd === 'admin123#') {
+            sessionStorage.setItem('isAuth', 'true');
+            checkLoginStatus();
+            showToast('Access Granted', 'success');
+        } else {
+            showToast('Invalid Password', 'error');
+            els.loginPassword.value = '';
         }
     });
 
-    // --- Nav Inputs ---
+    els.logoutBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to log out?')) {
+            sessionStorage.removeItem('isAuth');
+            window.location.reload();
+        }
+    });
+
+    // --- Secret Reset Logic ---
+    let secretClickCount = 0;
+    els.settingsHeaderTitle.addEventListener('click', () => {
+        secretClickCount++;
+        if (secretClickCount === 5) {
+            els.clearDataBtn.style.display = 'block';
+            showToast('Master Controls Unlocked', 'info');
+        }
+    });
+
+    els.clearDataBtn.addEventListener('click', async () => {
+        const confirmCode = prompt('⚠ EXTREME WARNING: This will permanently delete ALL Cloud data.\nTo proceed, type the Master Key (RESET-99):');
+
+        if (confirmCode === 'RESET-99') {
+            const secondConfirm = confirm('THIS ACTION CANNOT BE UNDONE. Are you 100% sure?');
+            if (secondConfirm) {
+                try {
+                    showToast('Wiping database...', 'info');
+                    await store.clearAllData();
+                    showToast('Database wiped successfully', 'success');
+                    setTimeout(() => window.location.reload(), 2000);
+                } catch (err) {
+                    showToast('Reset failed: ' + err.message, 'error');
+                }
+            }
+        } else if (confirmCode !== null) {
+            showToast('Incorrect Master Key', 'error');
+        }
+    });
     els.monthSelect.addEventListener('change', updateStoreDate);
     els.yearInput.addEventListener('change', updateStoreDate);
 
@@ -722,15 +779,7 @@ function setupEventListeners() {
     });
 
     // Logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('isLoggedIn');
-                location.reload();
-            }
-        });
-    }
+    // Logout logic removed for public access
 
     // Search (Debounced)
     const debouncedRender = debounce(() => renderTables(store.state.transactions, store.state.beneficiaries, store.state.selectedMonth, store.state.sortConfig), 300);
@@ -780,6 +829,10 @@ function render(state) {
     // Display Closing Balance (Carry Over)
     els.liqUSD.textContent = fmtUSD(closingUSD);
     els.liqBDT.textContent = fmtBDT(closingBDT);
+
+    // Also display in Money Out tab if elements exist
+    if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(closingUSD);
+    if (els.outLiqBDT) els.outLiqBDT.textContent = fmtBDT(closingBDT);
 
     els.monthReceipts.textContent = fmtUSD(monthReceiptsUSD);
     els.monthReceiptsBDT.textContent = fmtBDT(monthReceiptsBDT);

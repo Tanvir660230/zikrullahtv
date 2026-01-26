@@ -47,19 +47,23 @@
     --border-light: #e4e5e7;
     --border-hover: #c5c6c9;
 
-    /* Shadows - Premium Elevation */
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
-    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.05);
-    --shadow-float: 0 20px 40px rgba(0, 0, 0, 0.12);
-    --shadow-btn: 0 4px 14px 0 rgba(29, 191, 115, 0.39);
+    /* Shadows - Premium Soft Elevation */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.1);
+    --shadow-float: 0 25px 60px rgba(0, 0, 0, 0.15);
+    --shadow-btn: 0 4px 14px 0 rgba(29, 191, 115, 0.3);
 
-    /* Radii */
+    /* Radii - Fiverr Style (Slightly rounded but professional) */
+    --radius-xs: 4px;
     --radius-sm: 6px;
     --radius-md: 8px;
-    /* Standard inputs/buttons */
     --radius-lg: 12px;
-    /* Cards */
     --radius-full: 9999px;
+
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s ease;
 
     /* Fonts */
     --font-heading: 'Manrope', sans-serif;
@@ -121,37 +125,31 @@ header {
     justify-content: space-between;
     align-items: center;
     background: #ffffff;
-    padding: 1rem 0;
-    /* Removing side padding to match container width effectively or just cleaner look */
-    /* Actually better to keep padding but remove background/shadow for "flat" feel if inside container, OR Keep white bar */
-    /* Fiverr has a white header bar. Let's stick to that but simpler. */
+    padding: 1rem 2rem;
     border-bottom: 1px solid var(--border-light);
-    border-radius: 0;
-    /* Full width feel usually, but here constrained by container. Let's keep 0 for flat look */
-    box-shadow: none;
     position: sticky;
     top: 0;
     z-index: 50;
     margin: -2rem -2rem 2rem -2rem;
-    /* Stretch full width of container padding */
-    padding-left: 2rem;
-    padding-right: 2rem;
+    transition: var(--transition-smooth);
 }
 
 header:hover {
     background: #ffffff;
-    box-shadow: none;
 }
 
 h1 {
     font-family: var(--font-heading);
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #404145;
-    letter-spacing: -0.02em;
-    background: none;
-    -webkit-text-fill-color: initial;
-    /* Keep it solid dark */
+    font-size: 2.25rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin: 0;
+    background: linear-gradient(135deg, #1dbf73 0%, #19a463 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .header-left {
@@ -306,21 +304,22 @@ svg {
 /* --- Cards --- */
 .card {
     background: #ffffff;
-    padding: 1.25rem;
+    padding: 1.5rem;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: all 0.2s ease;
+    transition: var(--transition-smooth);
     height: 100%;
     position: relative;
+    overflow: hidden;
 }
 
 .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
     border-color: var(--brand-primary);
 }
 
@@ -507,21 +506,21 @@ svg {
 .nav-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1.25rem;
+    gap: 0.6rem;
+    padding: 0.7rem 1.5rem;
     border: none;
     background: transparent;
     color: var(--text-secondary);
-    font-weight: 600;
-    font-size: 0.95rem;
+    font-weight: 700;
+    font-size: 0.9rem;
     border-radius: var(--radius-full);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: var(--transition-smooth);
 }
 
 .nav-item:hover {
-    color: var(--text-primary);
-    background: var(--bg-app);
+    color: var(--brand-primary);
+    background: var(--brand-light);
 }
 
 .nav-item.active {
@@ -876,12 +875,12 @@ tr:hover .copy-amount-btn {
     box-shadow: var(--shadow-float);
     width: 100%;
     max-width: 600px;
-    transform: translateY(20px) scale(0.95);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(30px) scale(0.98);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     max-height: 90vh;
-    animation: none;
     display: flex;
     flex-direction: column;
+    border: 1px solid var(--border-light);
 }
 
 .modal.large-modal {
@@ -893,12 +892,12 @@ tr:hover .copy-amount-btn {
 }
 
 .modal-header {
-    padding: 1.25rem 1.5rem;
+    padding: 1.5rem 2rem;
     border-bottom: 1px solid var(--border-light);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #fafbfc;
+    background: #ffffff;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
@@ -927,9 +926,9 @@ tr:hover .copy-amount-btn {
 }
 
 .close-btn:hover {
-    background: var(--bg-app);
-    color: var(--text-primary);
-    transform: rotate(90deg);
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    transform: rotate(90deg) scale(1.1);
 }
 
 .modal-content {
@@ -1082,11 +1081,21 @@ tr:hover .copy-amount-btn {
 
 .login-modal {
     box-shadow: var(--shadow-float);
-    max-width: 400px;
+    max-width: 420px;
     background: white;
-    padding: 3rem;
+    padding: 3.5rem 2.5rem;
     text-align: center;
     border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    animation: fadeInSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-header h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--brand-primary);
+    margin-bottom: 0.5rem;
 }
 
 .login-header h3 {
@@ -1154,240 +1163,256 @@ tr:hover .copy-amount-btn {
 }
 
 /* Animations - Soft and Professional */
-@keyframes fadeIn {
+@keyframes fadeInSlide {
     from {
         opacity: 0;
-        transform: translateY(10px) scale(0.98);
+        transform: translateY(15px);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }
 
-@keyframes fadeOut {
-    from {
+@keyframes pulse-soft {
+    0% {
+        transform: scale(1);
         opacity: 1;
-        transform: translateY(0) scale(1);
     }
 
-    to {
-        opacity: 0;
-        transform: translateY(10px) scale(0.95);
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
     }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.status-badge-v2.success::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #1dbf73;
+    border-radius: 50%;
+    margin-right: 8px;
+    animation: pulse-soft 2s infinite;
 }
 
 /* Responsive & Mobile Optimization */
+/* Responsive & Mobile Optimization (Cleaner & Smoother) */
 @media (max-width: 768px) {
     .app-container {
-        padding: 1rem;
-        gap: 1.5rem;
-        max-width: 100vw;
-        overflow-x: hidden;
+        padding: 0.75rem;
+        gap: 1rem;
+        padding-bottom: 80px;
+        /* Space for bottom nav */
     }
 
-    /* 1. Header */
+    /* 1. Header - Compact & Flat */
     header {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-        position: static;
-        /* Unstick on mobile to save screen space */
-        margin: -1rem -1rem 1.5rem -1rem;
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-light);
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 0.75rem 1rem;
+        margin: -0.75rem -0.75rem 1rem -0.75rem;
+        position: sticky;
+        top: 0;
+        gap: 0.5rem;
+        justify-content: space-between;
     }
 
     .header-left {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-        width: 100%;
-    }
-
-    .header-right {
-        justify-content: space-between;
-        width: 100%;
-        margin-top: 0.5rem;
-    }
-
-    .month-navigator {
-        width: 100%;
-        justify-content: space-between;
-        padding: 0.5rem;
-        background: white;
-        border: 1px solid var(--border-light);
-    }
-
-    .nav-inputs {
-        flex: 1;
-        justify-content: center;
-    }
-
-    /* 2. Dashboard Grid */
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-        /* Stack vertically */
-        gap: 1rem;
-    }
-
-    .card {
-        padding: 1rem;
-    }
-
-    .card-value {
-        font-size: 1.25rem;
-    }
-
-    /* 3. Action Bar */
-    .action-bar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1rem;
-    }
-
-    .search-wrapper {
-        max-width: 100%;
-    }
-
-    .action-buttons {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        width: auto;
         gap: 0.5rem;
     }
 
-    .action-buttons .btn-primary {
-        grid-column: span 2;
-        /* Main button full width */
-    }
-
-    /* 4. Tables (Horizontal Scroll) */
-    .table-container {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: var(--radius-md);
-        margin: 0 -0.5rem;
-        /* Slight negative margin to maximize width */
-        padding-bottom: 1rem;
-        /* Space for scrollbar */
-    }
-
-    table {
-        min-width: 650px;
-        /* Force scroll for wide tables */
-    }
-
-    th,
-    td {
-        padding: 0.75rem 1rem;
-        font-size: 0.85rem;
-    }
-
-    /* 5. Tabs */
-    .tabs-wrapper {
-        margin-bottom: 1rem;
-    }
-
-    .tabs-container {
+    h1 {
+        font-size: 1.75rem;
         width: 100%;
-        margin-bottom: 1rem;
-    }
-
-    .tabs {
-        width: 100%;
-    }
-
-    .tab-btn {
-        flex: 1;
-        /* Equal width tabs */
         text-align: center;
-        padding: 0.75rem;
-        font-size: 0.9rem;
     }
 
-    /* 6. Modals (Bottom Sheet style feels) */
-    .modal {
-        width: 100%;
-        height: 100%;
-        max-height: 100%;
-        border-radius: 0;
+    .header-right {
+        width: auto;
         margin: 0;
-        display: flex;
+        gap: 0.5rem;
+    }
+
+    .month-navigator {
+        order: 3;
+        width: 100%;
+        margin-top: 0.5rem;
+        background: var(--bg-app);
+    }
+
+    /* Hide text on small buttons to save space */
+    .btn-primary span,
+    .btn-secondary span {
+        display: none;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 0.6rem 0.8rem;
+    }
+
+    /* 2. Bottom Navigation - Premium Feel */
+    .main-nav-container {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        padding: 0.75rem;
+        background: linear-gradient(to top, rgba(255, 255, 255, 1) 80%, rgba(255, 255, 255, 0));
+        z-index: 1000;
+    }
+
+    .main-nav {
+        width: 100%;
+        justify-content: space-around;
+        background: #ffffff;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--border-light);
+    }
+
+    .nav-item {
         flex-direction: column;
+        gap: 0.2rem;
+        padding: 0.5rem;
+        font-size: 0.7rem;
+        flex: 1;
+    }
+
+    .nav-item svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* 2. Dashboard - Super Minimalist */
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    /* Hide non-critical stats on mobile dashboard */
+    #dashboardView .card:nth-child(2),
+    #dashboardView .card:nth-child(3),
+    .section-header,
+    .dashboard-grid:last-of-type .card:nth-child(2),
+    .dashboard-grid:last-of-type .card:nth-child(3) {
+        display: none;
+    }
+
+    /* Make the primary Balance Card very compact */
+    .card-liquidity {
+        padding: 1rem !important;
+        background: #ffffff !important;
+        border: 2px solid var(--brand-primary) !important;
+    }
+
+    .card-liquidity .card-icon {
+        display: none;
+        /* Icon takes space */
+    }
+
+    .card-liquidity .card-label {
+        font-size: 0.7rem;
+        text-align: center;
+    }
+
+    .card-value-display {
+        margin-top: 0.5rem;
+    }
+
+    /* Pending stats - single compact row at the top */
+    .dashboard-grid:last-of-type {
+        grid-template-columns: 1fr;
+        margin-top: 0;
+    }
+
+    .dashboard-grid:last-of-type .card:first-child {
+        background: var(--warning-bg);
+        border: 1px solid var(--warning);
+        padding: 0.75rem 1rem;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .dashboard-grid:last-of-type .card:first-child .card-icon {
+        display: none;
+    }
+
+    .dashboard-grid:last-of-type .card:first-child .card-content {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        align-items: center;
+    }
+
+    .dashboard-grid:last-of-type .card:first-child .card-value {
+        font-size: 1.1rem;
+    }
+
+    .dashboard-grid:last-of-type .card:first-child .card-value-sub {
+        margin: 0;
+        font-weight: 700;
+        color: var(--warning-text);
+    }
+
+    /* 4. Action Bar */
+    .action-bar {
+        gap: 0.75rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        overflow-x: auto;
+        width: 100%;
+        padding-bottom: 0.25rem;
+        gap: 0.5rem;
+        scrollbar-width: none;
+    }
+
+    .action-buttons::-webkit-scrollbar {
+        display: none;
+    }
+
+    .action-buttons button {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    /* 5. Tables - Scroll Hint */
+    .table-container {
+        border: 1px solid var(--border-light);
+        margin: 0;
+    }
+
+    /* 6. Modals - Full Screen with better padding */
+    .modal {
+        border-radius: 16px 16px 0 0;
+        height: auto;
+        max-height: 95vh;
+        margin-top: auto;
     }
 
     .modal-content {
-        overflow-y: auto;
         padding: 1.5rem;
-        flex: 1;
-    }
-
-    .modal-header {
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid var(--border-light);
     }
 
     .form-grid {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
-    /* Login Modal Specifics */
     .login-modal {
-        height: auto;
-        min-height: 40vh;
-        bottom: 0;
-        top: auto;
-        border-radius: 20px 20px 0 0;
-    }
-
-    /* Report Modal Mobile View */
-    .report-modal-content {
-        width: 100%;
-        height: 100%;
-        padding: 1rem;
-        margin: 0;
-    }
-
-    .inv-header {
-        flex-direction: column;
-        text-align: center;
-        gap: 1.5rem;
-    }
-
-    .inv-brand,
-    .inv-meta {
-        text-align: center;
-        width: 100%;
-    }
-
-    .summary-grid {
-        grid-template-columns: 1fr;
-        /* Stack summary cards */
-    }
-
-    .report-row {
-        grid-template-columns: 1fr;
-    }
-
-    .net-flow-box-premium {
-        flex-direction: column;
-        text-align: center;
-        gap: 1.5rem;
-    }
-
-    .net-flow-data {
-        width: 100%;
-    }
-
-    .status-badge-v2 {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .report-footer-v2 {
-        grid-template-columns: 1fr;
-        gap: 3rem;
-        margin-top: 3rem;
+        max-height: 60vh;
     }
 }

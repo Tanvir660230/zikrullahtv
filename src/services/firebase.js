@@ -16,12 +16,28 @@ export const firebaseService = {
     async init() {
         console.log('FirebaseService: Attempting to connect to Cloud...');
         try {
-            const [appMod, fsMod] = await Promise.all([
+            const [appMod, fsMod, authMod] = await Promise.all([
                 import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js'),
-                import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js')
+                import('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js'),
+                import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js')
             ]);
 
             const app = appMod.initializeApp(firebaseConfig);
+
+            // Initialize Auth and sign in anonymously
+            const auth = authMod.getAuth(app);
+            try {
+                await authMod.signInAnonymously(auth);
+                console.log('FirebaseService: Signed in anonymously');
+            } catch (authError) {
+                console.error('FirebaseService: Auth Error', authError);
+                if (authError.code === 'auth/operation-not-allowed') {
+                    // This is a critical error for our rules
+                    throw new Error('Please Enable Anonymous Login in Firebase Console Authentication Tab');
+                }
+                // Other errors might be network, we try to proceed but likely fail
+            }
+
             db = fsMod.getFirestore(app);
             methods = {
                 collection: fsMod.collection,
@@ -35,11 +51,12 @@ export const firebaseService = {
                 doc: fsMod.doc,
                 onSnapshot: fsMod.onSnapshot
             };
+
             console.log('FirebaseService: Cloud connection established');
             return true;
         } catch (error) {
             console.error('FirebaseService: Initialization failed', error);
-            return false;
+            throw error;
         }
     },
 
@@ -110,5 +127,15 @@ export const firebaseService = {
         }, (error) => {
             console.error('FirebaseService: Settings subscription error:', error);
         });
+    },
+
+    async clearAll() {
+        const collections = ['transactions', 'beneficiaries', 'sources', 'settings'];
+        for (const coll of collections) {
+            const snapshot = await methods.getDocs(methods.collection(db, coll));
+            const promises = snapshot.docs.map(d => methods.deleteDoc(methods.doc(db, coll, d.id)));
+            await Promise.all(promises);
+        }
+        return true;
     }
 };

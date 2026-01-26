@@ -58,13 +58,13 @@
                     </svg>
                     <span>CEO Report</span>
                 </button>
-                <button id="logoutBtn" class="icon-btn" title="Logout"
-                    style="border-color: var(--color-danger); color: var(--color-danger);">
+                <button id="logoutBtn" class="btn-secondary" style="margin-right: 0.75rem;">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="w-6 h-6">
+                        stroke="currentColor" class="w-5 h-5">
                         <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                            d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3-3H15m-3-3-3 3 3 3" />
                     </svg>
+                    <span>Logout</span>
                 </button>
                 <button id="openSettingsBtn" class="settings-btn icon-btn" title="Settings">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
@@ -244,6 +244,20 @@
 
         <!-- Disbursements Tab -->
         <div id="outgoingTab" class="tab-content" style="display: none;">
+            <!-- Available Balance Summary for Disbursements -->
+            <div class="mini-stats-grid"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div class="card" style="padding: 1rem; border-left: 4px solid #cbd5e1;">
+                    <div class="card-label" style="font-size: 0.65rem; margin-bottom: 0.25rem;">Available USD</div>
+                    <div class="card-value" id="outLiqUSD" style="font-size: 1.1rem;">$0.00</div>
+                </div>
+                <div class="card" style="padding: 1rem; border-left: 4px solid var(--brand-primary);">
+                    <div class="card-label" style="font-size: 0.65rem; margin-bottom: 0.25rem;">Available BDT</div>
+                    <div class="card-value" id="outLiqBDT" style="font-size: 1.1rem; color: var(--brand-primary);">৳0.00
+                    </div>
+                </div>
+            </div>
+
             <div class="action-bar">
                 <div class="search-wrapper">
                     <input type="text" id="outSearch" placeholder="Search transactions...">
@@ -446,7 +460,7 @@
     <div id="settingsModal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h3>Settings</h3>
+                <h3 id="settingsHeaderTitle" style="cursor: default; user-select: none;">Settings</h3>
                 <button class="close-btn" id="closeSettingsModal">&times;</button>
             </div>
             <div class="modal-content">
@@ -460,7 +474,7 @@
                         <input type="number" step="0.01" id="setOpeningBDT" class="input-lg">
                     </div>
                     <button type="button" id="clearDataBtn" class="btn-secondary"
-                        style="width: 100%; margin-bottom: 1rem; border-color: var(--color-danger); color: var(--color-danger); border-radius: var(--radius-md);">⚠
+                        style="width: 100%; margin-bottom: 1rem; border-color: var(--color-danger); color: var(--color-danger); border-radius: var(--radius-md); display: none;">⚠
                         Reset All Data</button>
                     <button type="button" id="downloadBackupBtn" class="btn-secondary"
                         style="width: 100%; margin-bottom: 1rem; border-color: var(--brand-primary); color: var(--brand-primary); border-radius: var(--radius-md);">
@@ -768,19 +782,28 @@
 
 
     <!-- Login Modal -->
-    <div id="loginModal" class="modal-overlay login-overlay">
-        <div class="modal login-modal">
-            <div class="modal-header login-header">
-                <h3>Welcome Back</h3>
+    <div id="loginModal" class="modal-overlay open"
+        style="z-index: 9999; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
+        <div class="modal" style="max-width: 400px; text-align: center; border: 1px solid var(--brand-primary);">
+            <div class="modal-header" style="justify-content: center; border: none;">
+                <h2 style="margin: 0; color: var(--brand-primary); font-family: 'Outfit';">Security Portal</h2>
             </div>
-            <p class="login-subtitle">Please enter password to access dashboard</p>
-            <form id="loginForm">
-                <div class="form-group">
-                    <input type="password" id="loginPassword" placeholder="Enter Password" class="input-lg login-input"
-                        required>
-                </div>
-                <button type="submit" class="btn-primary full-width login-btn">Unlock Access</button>
-            </form>
+            <div class="modal-content" style="padding: 2rem;">
+                <p style="margin-bottom: 2rem; color: var(--text-secondary);">Please enter administrative credentials to
+                    access the financial dashboard.</p>
+                <form id="loginForm">
+                    <div class="form-group" style="text-align: left;">
+                        <label
+                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Access
+                            Password</label>
+                        <input type="password" id="loginPassword" class="input-lg" required placeholder="Enter password"
+                            style="text-align: center; font-size: 1.25rem; letter-spacing: 0.5em;">
+                    </div>
+                    <button type="submit" class="btn-primary full-width" style="margin-top: 1.5rem; padding: 1rem;">
+                        Authorize Access
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -789,7 +812,7 @@
 
     <!-- Scripts -->
 
-    <script type="module" src="./src/app.js"></script>
+    <script type="module" src="./src/app.js?v=2"></script>
 </body>
 
 </html>
