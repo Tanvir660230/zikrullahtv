@@ -487,10 +487,15 @@ function setupEventListeners() {
     // Incoming
     els.openIncModalBtn.addEventListener('click', () => {
         els.incomingModal.classList.add('open');
-        // Auto-fill Rate with the latest used incoming rate
-        const lastTx = [...store.state.transactions].reverse().find(t => t.type === 'incoming' && t.rate > 0);
-        if (lastTx) {
-            els.incRate.value = lastTx.rate;
+        // Auto-fill Rate with the latest used incoming rate (Prioritize LocalStorage)
+        const savedRate = localStorage.getItem('lastIncRate');
+        if (savedRate) {
+            els.incRate.value = savedRate;
+        } else {
+            const lastTx = [...store.state.transactions].reverse().find(t => t.type === 'incoming' && t.rate > 0);
+            if (lastTx) {
+                els.incRate.value = lastTx.rate;
+            }
         }
     });
     els.closeIncModal.addEventListener('click', () => els.incomingModal.classList.remove('open'));
@@ -733,6 +738,12 @@ function setupEventListeners() {
         e.preventDefault();
         try {
             const id = els.incId.value;
+
+            // Save Rate for future convenience
+            if (els.incRate.value) {
+                localStorage.setItem('lastIncRate', els.incRate.value);
+            }
+
             const txData = {
                 date: els.incDate.value,
                 type: 'incoming',
