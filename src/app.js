@@ -1,4 +1,4 @@
-import { store } from './store/store.js';
+import { store } from './store/store.js?v=26';
 import { fmtUSD, fmtBDT, showToast, debounce } from './utils/utils.js';
 
 // Elements Map
@@ -20,6 +20,7 @@ const els = {
     monthDisbursementsBDT: document.getElementById('monthDisbursementsBDT'),
     outLiqUSD: document.getElementById('outLiqUSD'),
     outLiqBDT: document.getElementById('outLiqBDT'),
+    avgBuyRate: document.getElementById('avgBuyRate'),
 
     // Stats
     statsPendingCount: document.getElementById('statsPendingCount'),
@@ -39,6 +40,8 @@ const els = {
     outgoingView: document.getElementById('outgoingTab'),
 
     // Incoming
+    incLiqUSD: document.getElementById('incLiqUSD'),
+    incLiqBDT: document.getElementById('incLiqBDT'),
     incSearch: document.getElementById('incSearch'),
     exportIncBtn: document.getElementById('exportIncBtn'),
     openIncModalBtn: document.getElementById('openIncModalBtn'),
@@ -73,7 +76,7 @@ const els = {
     downloadReportBtn: document.getElementById('downloadReportBtn'),
 
     // Report Elements
-    printReportBtn: document.getElementById('printReportBtn'),
+    downloadReportPdfBtn: document.getElementById('downloadReportPdfBtn'),
     openReportModalBtn: document.getElementById('openReportModalBtn'),
     repMonth: document.getElementById('repMonth'),
     repGenDate: document.getElementById('repGenDate'),
@@ -85,6 +88,7 @@ const els = {
     repTotalOutUSD: document.getElementById('repTotalOutUSD'),
     repClosing: document.getElementById('repClosing'),
     repClosingUSD: document.getElementById('repClosingUSD'),
+    repClosingCard: document.getElementById('repClosingCard'),
     repInBody: document.getElementById('repInBody'),
     repOutBody: document.getElementById('repOutBody'),
     repInTotal: document.getElementById('repInTotal'),
@@ -112,6 +116,8 @@ const els = {
     outUSD: document.getElementById('outUSD'),
     outBDT: document.getElementById('outBDT'),
     outRate: document.getElementById('outRate'),
+    hintRateVal: document.getElementById('hintRateVal'),
+    applyAvgRateBtn: document.getElementById('applyAvgRateBtn'),
     bankPreview: document.getElementById('bankPreview'),
     prevBankName: document.getElementById('prevBankName'),
     prevAccNo: document.getElementById('prevAccNo'),
@@ -135,11 +141,23 @@ const els = {
     settingsForm: document.getElementById('settingsForm'),
     setOpeningUSD: document.getElementById('setOpeningUSD'),
     setOpeningBDT: document.getElementById('setOpeningBDT'),
+    openingBalanceSection: document.getElementById('openingBalanceSection'),
     clearDataBtn: document.getElementById('clearDataBtn'),
     downloadBackupBtn: document.getElementById('downloadBackupBtn'),
 
     // Beneficiary Form
     benForm: document.getElementById('beneficiaryForm'),
+
+    // History Modal
+    historyModal: document.getElementById('historyModal'),
+    closeHistoryModal: document.getElementById('closeHistoryModal'),
+    openHistoryModalBtn: document.getElementById('openHistoryModalBtn'),
+    sidebarHistoryBtn: document.getElementById('sidebarHistoryBtn'),
+    histSearch: document.getElementById('histSearch'),
+    histMonth: document.getElementById('histMonth'),
+    histYear: document.getElementById('histYear'),
+    downloadBankStatementBtn: document.getElementById('downloadBankStatementBtn'),
+    historyTableBody: document.getElementById('historyTableBody'),
 
     // Login
     loginModal: document.getElementById('loginModal'),
@@ -147,8 +165,47 @@ const els = {
     loginPassword: document.getElementById('loginPassword'),
     logoutBtn: document.getElementById('logoutBtn'),
     settingsHeaderTitle: document.getElementById('settingsHeaderTitle'),
-    clearDataBtn: document.getElementById('clearDataBtn')
+
+    // Sidebar
+    mobileMenuBtn: document.getElementById('mobileMenuBtn'),
+    mobileSidebar: document.getElementById('mobileSidebar'),
+    mobileSidebarOverlay: document.getElementById('mobileSidebarOverlay'),
+    closeSidebarBtn: document.getElementById('closeSidebarBtn'),
+    sidebarReportBtn: document.getElementById('sidebarReportBtn'),
+    sidebarLogoutBtn: document.getElementById('sidebarLogoutBtn'),
+    sidebarSettingsBtn: document.getElementById('sidebarSettingsBtn')
 };
+
+// --- Responsive Layout ---
+function setupResponsiveLayout() {
+    const monthNav = document.querySelector('.month-navigator');
+    const headerLeft = document.querySelector('.header-left');
+    // els.mobileDateLocation is not in els object yet? Let's check or use document.getElementById
+    const mobileLoc = document.getElementById('mobileDateLocation');
+
+    const handleResize = () => {
+        if (window.innerWidth <= 768) {
+            // Move to mobile location if not already there
+            if (mobileLoc && monthNav && !mobileLoc.contains(monthNav)) {
+                mobileLoc.appendChild(monthNav);
+            }
+        } else {
+            // Move back to header if not already there
+            if (headerLeft && monthNav && !headerLeft.contains(monthNav)) {
+                // Ensure it goes after h1
+                const h1 = headerLeft.querySelector('h1');
+                if (h1 && h1.nextSibling) {
+                    headerLeft.insertBefore(monthNav, h1.nextSibling);
+                } else {
+                    headerLeft.appendChild(monthNav);
+                }
+            }
+        }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+}
 
 // Start
 if (document.readyState === 'loading') {
@@ -172,6 +229,7 @@ async function initApp() {
 
         updateStoreDate();
         setupEventListeners();
+        setupResponsiveLayout(); // Add this
         store.subscribe(render);
         checkLoginStatus();
 
@@ -287,6 +345,43 @@ function changeMonth(offset) {
 }
 
 function setupEventListeners() {
+    // --- Sidebar Logic ---
+    const openSidebar = () => {
+        if (els.mobileSidebar) els.mobileSidebar.classList.add('open');
+        if (els.mobileSidebarOverlay) els.mobileSidebarOverlay.classList.add('open');
+    };
+
+    const closeSidebar = () => {
+        if (els.mobileSidebar) els.mobileSidebar.classList.remove('open');
+        if (els.mobileSidebarOverlay) els.mobileSidebarOverlay.classList.remove('open');
+    };
+
+    if (els.mobileMenuBtn) els.mobileMenuBtn.addEventListener('click', openSidebar);
+    if (els.closeSidebarBtn) els.closeSidebarBtn.addEventListener('click', closeSidebar);
+    if (els.mobileSidebarOverlay) els.mobileSidebarOverlay.addEventListener('click', closeSidebar);
+
+    // Sidebar Actions
+    if (els.sidebarReportBtn) {
+        els.sidebarReportBtn.addEventListener('click', () => {
+            closeSidebar();
+            if (els.openReportModalBtn) els.openReportModalBtn.click();
+        });
+    }
+
+    if (els.sidebarSettingsBtn) {
+        els.sidebarSettingsBtn.addEventListener('click', () => {
+            closeSidebar();
+            if (els.settingsBtn) els.settingsBtn.click();
+        });
+    }
+
+    if (els.sidebarLogoutBtn) {
+        els.sidebarLogoutBtn.addEventListener('click', () => {
+            closeSidebar();
+            if (els.logoutBtn) els.logoutBtn.click();
+        });
+    }
+
     // --- Tabs ---
     // --- Navigation ---
     const updateNav = (view) => {
@@ -338,6 +433,7 @@ function setupEventListeners() {
         secretClickCount++;
         if (secretClickCount === 5) {
             els.clearDataBtn.style.display = 'block';
+            els.openingBalanceSection.style.display = 'block';
             showToast('Master Controls Unlocked', 'info');
         }
     });
@@ -368,7 +464,19 @@ function setupEventListeners() {
     els.prevMonthBtn.addEventListener('click', () => changeMonth(-1));
     els.nextMonthBtn.addEventListener('click', () => changeMonth(1));
 
-    // --- Sorting ---
+    // Mobile Sorting (Chips)
+    document.querySelectorAll('.sort-chip').forEach(chip => {
+        chip.addEventListener('click', (e) => {
+            // Remove active from all
+            document.querySelectorAll('.sort-chip').forEach(c => c.classList.remove('active'));
+            // Add to clicked
+            e.target.classList.add('active');
+            // Trigger Sort
+            store.setSort(e.target.dataset.sort);
+        });
+    });
+
+    // --- View Switching ---
     document.querySelectorAll('th.sortable').forEach(th => {
         th.addEventListener('click', () => {
             store.setSort(th.dataset.sort);
@@ -386,13 +494,70 @@ function setupEventListeners() {
     // Outgoing
     els.openOutModalBtn.addEventListener('click', () => {
         els.outgoingModal.classList.add('open');
-        // Auto-fill Rate from last INCOMING transaction (Fund Receive) immediately on open
-        const lastIncomingTx = store.state.transactions.find(t => t.type === 'incoming' && t.rate > 0);
-        if (lastIncomingTx) {
-            els.outRate.value = lastIncomingTx.rate;
+        // Auto-fill Rate with Average Buy Rate for perfect maintenance
+        const avgRate = store.state.liquidity.averageBuyRate || 0;
+        if (avgRate > 0) {
+            els.outRate.value = avgRate.toFixed(2);
         }
     });
+
+    if (els.applyAvgRateBtn) {
+        els.applyAvgRateBtn.addEventListener('click', () => {
+            const avgRate = store.state.liquidity.averageBuyRate || 0;
+            if (avgRate > 0) {
+                els.outRate.value = avgRate.toFixed(2);
+                showToast('Average Buy Rate Applied', 'info');
+            }
+        });
+    }
     els.closeOutModal.addEventListener('click', () => els.outgoingModal.classList.remove('open'));
+
+    // History listeners
+    if (els.openHistoryModalBtn) {
+        els.openHistoryModalBtn.addEventListener('click', () => {
+            renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value);
+            els.historyModal.classList.add('open');
+        });
+    }
+
+    if (els.sidebarHistoryBtn) {
+        els.sidebarHistoryBtn.addEventListener('click', () => {
+            renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value);
+            els.historyModal.classList.add('open');
+            els.mobileSidebar.classList.remove('open');
+            els.mobileSidebarOverlay.classList.remove('open');
+        });
+    }
+
+    if (els.closeHistoryModal) {
+        els.closeHistoryModal.addEventListener('click', () => {
+            els.historyModal.classList.remove('open');
+        });
+    }
+
+    if (els.histSearch) {
+        els.histSearch.addEventListener('input', debounce(() => {
+            renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value, els.histMonth.value, els.histYear.value);
+        }, 300));
+    }
+
+    if (els.histMonth) {
+        els.histMonth.addEventListener('change', () => {
+            renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value, els.histMonth.value, els.histYear.value);
+        });
+    }
+
+    if (els.histYear) {
+        els.histYear.addEventListener('change', () => {
+            renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value, els.histMonth.value, els.histYear.value);
+        });
+    }
+
+    if (els.downloadBankStatementBtn) {
+        els.downloadBankStatementBtn.addEventListener('click', () => {
+            downloadBankStatement(store.state.transactions, store.state.beneficiaries, els.histMonth.value, els.histYear.value);
+        });
+    }
 
     // Settings
     els.settingsBtn.addEventListener('click', () => {
@@ -420,10 +585,7 @@ function setupEventListeners() {
 
     // Report Download
     els.downloadReportBtn.addEventListener('click', () => {
-        // We can reuse exportCSV but we might want a combined report.
-        // For now, let's export both incoming and outgoing for the month.
-        exportCSV('incoming');
-        setTimeout(() => exportCSV('outgoing'), 500);
+        exportCEOReportCSV();
     });
 
     // Click Outside to Close for all modals
@@ -542,8 +704,8 @@ function setupEventListeners() {
         }
     });
 
-    // --- Report Printing ---
-    els.printReportBtn.addEventListener('click', () => {
+    // --- Report Download ---
+    els.downloadReportPdfBtn.addEventListener('click', () => {
         window.print();
     });
 
@@ -573,6 +735,12 @@ function setupEventListeners() {
                 amountBDT: parseFloat(els.incBDT.value) || 0,
             };
 
+            // INSTANT UI FEEDBACK (Close modal immediately)
+            els.incomingModal.classList.remove('open');
+            els.incomingForm.reset();
+            els.incId.value = ''; // Reset ID
+            els.incDate.value = new Date().toISOString().split('T')[0];
+
             if (id) {
                 await store.updateTransaction(id, txData);
                 showToast('Transaction Updated Successfully', 'success');
@@ -581,11 +749,6 @@ function setupEventListeners() {
                 await store.addTransaction(txData);
                 showToast('Money In Record Added', 'success');
             }
-
-            els.incomingForm.reset();
-            els.incId.value = ''; // Reset ID
-            els.incDate.value = new Date().toISOString().split('T')[0];
-            els.incomingModal.classList.remove('open');
         } catch (error) {
             console.error('Error saving transaction:', error);
             showToast('Failed to save record: ' + error.message, 'error');
@@ -606,6 +769,13 @@ function setupEventListeners() {
                 amountBDT: parseFloat(els.outBDT.value) || 0,
             };
 
+            // INSTANT UI FEEDBACK (Close modal immediately)
+            els.outgoingModal.classList.remove('open');
+            els.outgoingForm.reset();
+            els.outId.value = ''; // Reset ID
+            els.outDate.value = new Date().toISOString().split('T')[0];
+            els.bankPreview.style.display = 'none';
+
             if (id) {
                 await store.updateTransaction(id, txData);
                 showToast('Transaction Updated Successfully', 'success');
@@ -614,12 +784,6 @@ function setupEventListeners() {
                 await store.addTransaction(txData);
                 showToast('Money Out Record Added', 'success');
             }
-
-            els.outgoingForm.reset();
-            els.outId.value = ''; // Reset ID
-            els.outDate.value = new Date().toISOString().split('T')[0];
-            els.bankPreview.style.display = 'none';
-            els.outgoingModal.classList.remove('open');
         } catch (error) {
             console.error('Error saving outgoing:', error);
             showToast('Failed to save record: ' + error.message, 'error');
@@ -706,13 +870,7 @@ function setupEventListeners() {
         // 1. Copy Amount
         if (e.target.closest('.copy-amount-btn')) {
             const btn = e.target.closest('.copy-amount-btn');
-            const amount = btn.dataset.amount;
-            navigator.clipboard.writeText(amount).then(() => {
-                showToast(`Copied: ${amount}`, 'success');
-            }).catch(err => {
-                showToast('Failed to copy', 'error');
-                console.error('Copy failed', err);
-            });
+            copyToClipboard(btn.dataset.amount);
             return;
         }
 
@@ -730,13 +888,7 @@ function setupEventListeners() {
         // 1. Copy Amount
         if (e.target.closest('.copy-amount-btn')) {
             const btn = e.target.closest('.copy-amount-btn');
-            const amount = btn.dataset.amount;
-            navigator.clipboard.writeText(amount).then(() => {
-                showToast(`Copied: ${amount}`, 'success');
-            }).catch(err => {
-                showToast('Failed to copy', 'error');
-                console.error('Copy failed', err);
-            });
+            copyToClipboard(btn.dataset.amount);
             return;
         }
 
@@ -826,15 +978,19 @@ function render(state) {
         closingUSD, closingBDT
     } = state.liquidity;
 
-    // Display Closing Balance (Carry Over)
-    els.liqUSD.textContent = fmtUSD(closingUSD);
-    els.liqBDT.textContent = fmtBDT(closingBDT);
+    // Display Closing Balance (Carry    // Updates
+    els.liqUSD.textContent = fmtUSD(state.liquidity.closingUSD);
+    els.liqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
+    if (els.avgBuyRate) els.avgBuyRate.textContent = (state.liquidity.averageBuyRate || 0).toFixed(2);
+    if (els.hintRateVal) els.hintRateVal.textContent = (state.liquidity.averageBuyRate || 0).toFixed(2);
 
-    // Also display in Money Out tab if elements exist
-    if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(closingUSD);
-    if (els.outLiqBDT) els.outLiqBDT.textContent = fmtBDT(closingBDT);
+    // Update Mini Stats in Tabs (Both Money In and Money Out)
+    if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(state.liquidity.closingUSD);
+    if (els.outLiqBDT) els.outLiqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
+    if (els.incLiqUSD) els.incLiqUSD.textContent = fmtUSD(state.liquidity.closingUSD);
+    if (els.incLiqBDT) els.incLiqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
 
-    els.monthReceipts.textContent = fmtUSD(monthReceiptsUSD);
+    els.monthReceipts.textContent = fmtUSD(state.liquidity.monthReceiptsUSD);
     els.monthReceiptsBDT.textContent = fmtBDT(monthReceiptsBDT);
 
     els.monthDisbursements.textContent = fmtUSD(monthDisbursedUSD);
@@ -1132,6 +1288,7 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
     } else {
         incTxs.forEach(tx => {
             const tr = document.createElement('tr');
+            tr.className = `status-${tx.status || 'received'} type-${tx.subType}`;
             tr.innerHTML = `
                 <td data-label="Date">${tx.date}</td>
                 <td data-label="Payer">${tx.source}</td>
@@ -1186,6 +1343,7 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
             const statusClass = tx.status === 'paid' ? 'bg-green-light text-green' : (tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-gray-light');
 
             const tr = document.createElement('tr');
+            tr.className = `status-${tx.status}`;
             tr.innerHTML = `
                 <td data-label="Date">${tx.date}</td>
                 <td data-label="Receiver">
@@ -1276,6 +1434,11 @@ function generateMonthlyReport() {
         badge.className = `status-badge-v2 ${isSurplus ? 'surplus' : 'shortage'}`;
     }
 
+    if (els.repClosingCard) {
+        els.repClosingCard.classList.remove('success', 'danger');
+        els.repClosingCard.classList.add(isSurplus ? 'success' : 'danger');
+    }
+
     // 4. Strategic Insights Generation
     let insightHTML = '';
     if (isSurplus) {
@@ -1344,6 +1507,54 @@ function generateMonthlyReport() {
     `).join('');
     els.repOutTotal.textContent = fmtBDT(liquidity.monthDisbursedBDT);
     els.repOutTotalUSD.textContent = fmtUSD(liquidity.monthDisbursedUSD);
+}
+
+function exportCEOReportCSV() {
+    const { transactions, liquidity, selectedMonth, beneficiaries } = store.state;
+    const [y, m] = selectedMonth.split('-');
+    const monthName = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+
+    let csv = `Zikrullah TV LLC - EXECUTIVE FINANCIAL OPERATIONS REPORT\n`;
+    csv += `Report Period: ${monthName}\n`;
+    csv += `Generated On: ${new Date().toLocaleDateString()}\n\n`;
+
+    // 1. Executive Summary
+    csv += `EXECUTIVE SUMMARY\n`;
+    csv += `Opening Balance (BDT),${liquidity.openingBDT}\n`;
+    csv += `Opening Balance (USD),${liquidity.openingUSD}\n`;
+    csv += `Total Money In (BDT),${liquidity.monthReceiptsBDT}\n`;
+    csv += `Total Money Out (BDT),${liquidity.monthDisbursedBDT}\n`;
+    csv += `Closing Balance (BDT),${liquidity.closingBDT}\n`;
+    csv += `Closing Balance (USD),${liquidity.closingUSD}\n\n`;
+
+    // 2. Money In Section
+    csv += `MONEY IN (PAYERS)\n`;
+    csv += `Date,Source,Type,USD,BDT,Rate\n`;
+    const inTxs = transactions.filter(t => t.type === 'incoming' && t.date.startsWith(selectedMonth));
+    inTxs.forEach(t => {
+        csv += `${t.date},"${t.source}",${t.subType},${t.amountUSD},${t.amountBDT},${t.rate}\n`;
+    });
+    csv += `,,TOTAL,${liquidity.monthReceiptsUSD},${liquidity.monthReceiptsBDT},\n\n`;
+
+    // 3. Money Out Section
+    csv += `MONEY OUT (RECEIVERS)\n`;
+    csv += `Date,Receiver,USD,BDT,Rate,Status\n`;
+    const outTxs = transactions.filter(t => t.type === 'outgoing' && t.date.startsWith(selectedMonth));
+    outTxs.forEach(t => {
+        const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
+        const name = ben ? ben.nickname || ben.name : 'Unknown';
+        csv += `${t.date},"${name}",${t.amountUSD},${t.amountBDT},${t.rate},${t.status}\n`;
+    });
+    csv += `,,TOTAL,${liquidity.monthDisbursedUSD},${liquidity.monthDisbursedBDT},\n`;
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `CEO_Report_${selectedMonth}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function exportCSV(type) {
@@ -1458,7 +1669,7 @@ function renderProjectedCashflow(transactions, liquidity, settings) {
                         </div>
                         <div class="currency-row bdt-row">
                             <span class="currency-label">BDT</span>
-                            <span class="currency-val bdt indigo">${fmtBDT(currentCashBDT)}</span>
+                            <span class="currency-val bdt text-brand">${fmtBDT(currentCashBDT)}</span>
                         </div>
                     </div>
                 </div>
@@ -1475,11 +1686,11 @@ function renderProjectedCashflow(transactions, liquidity, settings) {
                     <div class="card-value-display">
                         <div class="currency-row usd-row">
                             <span class="currency-label">Pending USD</span>
-                            <span class="currency-val usd" style="color: var(--warning-text)">-${fmtUSD(pendingOutUSD)}</span>
+                            <span class="currency-val usd text-warning">-${fmtUSD(pendingOutUSD)}</span>
                         </div>
                         <div class="currency-row bdt-row">
                             <span class="currency-label">Pending BDT</span>
-                            <span class="currency-val bdt" style="color: var(--warning-text)">-${fmtBDT(pendingOutBDT)}</span>
+                            <span class="currency-val bdt text-warning">-${fmtBDT(pendingOutBDT)}</span>
                         </div>
                     </div>
                 </div>
@@ -1496,17 +1707,57 @@ function renderProjectedCashflow(transactions, liquidity, settings) {
                     <div class="card-value-display">
                         <div class="currency-row usd-row">
                             <span class="currency-label">Projected USD</span>
-                            <span class="currency-val usd">${fmtUSD(projectedUSD)}</span>
+                            <span class="currency-val usd ${isShortage ? 'text-danger' : 'text-success'}">${fmtUSD(projectedUSD)}</span>
                         </div>
                         <div class="currency-row bdt-row">
                             <span class="currency-label">Projected BDT</span>
-                            <span class="currency-val bdt" style="color: ${isShortage ? 'var(--danger-text)' : 'var(--success-text)'}">${fmtBDT(projectedBDT)}</span>
+                            <span class="currency-val bdt ${isShortage ? 'text-danger' : 'text-success'}">${fmtBDT(projectedBDT)}</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     `;
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(`Copied: ${text}`, 'success');
+        }).catch(err => {
+            console.error('Modern copy failed', err);
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+
+    // Ensure it's not visible and doesn't interfere with layout
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showToast(`Copied: ${text}`, 'success');
+        } else {
+            showToast('Failed to copy', 'error');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed', err);
+        showToast('Failed to copy', 'error');
+    }
+
+    document.body.removeChild(textArea);
 }
 
 function openBeneficiaryModal(ben = null) {
@@ -1524,5 +1775,159 @@ function openBeneficiaryModal(ben = null) {
         els.benForm.reset();
         els.benId.value = '';
         els.beneficiaryModal.classList.add('open');
+    }
+}
+
+function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth = '', filterYear = '2026') {
+    const q = query.toLowerCase().trim();
+
+    // Sort by date descending
+    const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+
+    let filtered = sorted;
+
+    // 1. Apply Month/Year Filter if selected
+    if (filterMonth) {
+        const targetPrefix = `${filterYear}-${filterMonth}`;
+        filtered = filtered.filter(t => t.date.startsWith(targetPrefix));
+    } else if (filterYear) {
+        // If only year is selected (or default 2026)
+        filtered = filtered.filter(t => t.date.startsWith(filterYear));
+    }
+
+    // 2. Apply Search Query
+    if (q) {
+        filtered = filtered.filter(t => {
+            const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
+            const identity = (t.type === 'incoming' ? t.source : (ben ? ben.nickname || ben.name : 'Unknown')).toLowerCase();
+            return (
+                t.date.includes(q) ||
+                identity.includes(q) ||
+                t.amountUSD.toString().includes(q) ||
+                t.amountBDT.toString().includes(q) ||
+                t.type.toLowerCase().includes(q)
+            );
+        });
+    }
+
+    els.historyTableBody.innerHTML = '';
+    if (filtered.length === 0) {
+        els.historyTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">No transactions found matching "${q}"</td></tr>`;
+        return;
+    }
+
+    filtered.forEach(tx => {
+        const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
+        const identity = tx.type === 'incoming' ? tx.source : (ben ? ben.nickname || ben.name : 'Unknown');
+        const typeLabel = tx.type === 'incoming' ? (tx.subType === 'return' ? 'Return' : 'Receive') : 'Payout';
+        const typeClass = tx.type === 'incoming' ? (tx.subType === 'return' ? 'bg-orange-light text-orange' : 'bg-green-light text-green') : 'bg-indigo-light text-indigo';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td data-label="Date">${tx.date}</td>
+            <td data-label="Type"><span class="badge ${typeClass}">${typeLabel}</span></td>
+            <td data-label="Identity">${identity}</td>
+            <td data-label="USD" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
+            <td data-label="BDT" class="amount-column font-bold">${fmtBDT(tx.amountBDT)}</td>
+            <td data-label="Rate" class="text-right">${tx.rate.toFixed(2)}</td>
+            <td class="actions-cell">
+                <button class="icon-btn edit-tx-btn-hist" data-id="${tx.id}" title="Edit">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
+                </button>
+            </td>
+        `;
+
+        // Handle Edit from History
+        tr.querySelector('.edit-tx-btn-hist').addEventListener('click', () => {
+            els.historyModal.classList.remove('open');
+            editTransaction(tx.id);
+        });
+
+        els.historyTableBody.appendChild(tr);
+    });
+}
+
+/**
+ * Generates a bank-style CSV statement for a specific month
+ */
+function downloadBankStatement(transactions, beneficiaries, month, year) {
+    try {
+        console.log('Statement download triggered:', { month, year, txCount: transactions.length });
+
+        let filtered = transactions;
+        let title = "Full Transaction History";
+        let fileName = "full_history.csv";
+
+        if (month) {
+            const targetPrefix = `${year}-${month}`;
+            filtered = transactions
+                .filter(t => t.date.startsWith(targetPrefix))
+                .sort((a, b) => a.date.localeCompare(b.date));
+            title = `Account Statement - ${month}/${year}`;
+            fileName = `statement_${year}_${month}.csv`;
+        } else {
+            // Sort by date descending for full history
+            filtered = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+        }
+
+        if (filtered.length === 0) {
+            showToast('No transactions found to download.', 'info');
+            return;
+        }
+
+        // --- Format CSV ---
+        const headers = ["Date", "Type", "Ref/Identity", "USD", "BDT", "Rate", "Status"];
+        let csvContent = `${title}\n\n`;
+        csvContent += headers.join(",") + "\n";
+
+        filtered.forEach(tx => {
+            const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
+            const identity = tx.type === 'incoming' ? (tx.source || 'Unknown') : (ben ? ben.nickname || ben.name : 'Unknown');
+            const typeLabel = tx.type === 'incoming' ? (tx.subType === 'return' ? 'Return' : 'Receive') : 'Payout';
+
+            const usd = (parseFloat(tx.amountUSD) || 0).toFixed(2);
+            const bdt = (parseFloat(tx.amountBDT) || 0).toFixed(2);
+            const rate = (parseFloat(tx.rate) || 0).toFixed(2);
+
+            const row = [
+                tx.date,
+                `"${typeLabel}"`,
+                `"${identity.replace(/"/g, '""')}"`,
+                usd,
+                bdt,
+                rate,
+                `"${tx.status || 'received'}"`
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+
+        // --- Trigger Download ---
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+
+        // Ensure link is in DOM for some browsers
+        link.style.display = 'none';
+        document.body.appendChild(link);
+
+        // Trigger click
+        link.click();
+
+        // Clean up after longer delay
+        setTimeout(() => {
+            if (document.body.contains(link)) {
+                document.body.removeChild(link);
+            }
+            URL.revokeObjectURL(url);
+        }, 1000);
+
+        showToast('Download Started', 'success');
+    } catch (error) {
+        console.error('Download Logic Error:', error);
+        showToast('System Error: File could not be generated.', 'error');
     }
 }

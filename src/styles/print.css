@@ -8,19 +8,27 @@
     --report-muted: #64748b;
     --report-border: #e2e8f0;
     --report-brand: #10b981;
+    --success-text: #15803d;
+    --danger-text: #b91c1c;
+}
+
+/* Enforce Background Colors in Print */
+* {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
 }
 
 /* 1. Global Container */
 .report-modal-content {
     background: var(--report-bg);
-    padding: 3rem;
-    font-family: 'Manrope', sans-serif;
+    padding: 2.5rem;
+    font-family: 'Outfit', 'Manrope', sans-serif;
     color: var(--report-text);
 }
 
 /* 2. Professional Header */
 .corp-title {
-    font-size: 2.75rem;
+    font-size: 2.5rem;
     font-weight: 800;
     color: var(--report-brand);
     letter-spacing: -0.04em;
@@ -89,8 +97,8 @@
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 3rem;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
 }
 
 .sum-card {
@@ -101,8 +109,18 @@
 }
 
 .sum-card.highlight {
-    background: #f0fdf4;
-    border-color: #bbf7d0;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.sum-card.success {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+}
+
+.sum-card.danger {
+    background: #fef2f2 !important;
+    border-color: #fecaca !important;
 }
 
 .sum-label {
@@ -178,15 +196,24 @@
     text-align: right !important;
 }
 
+.text-success {
+    color: var(--success-text) !important;
+}
+
+.text-danger {
+    color: var(--danger-text) !important;
+}
+
 /* 6. Net Performance Indicator */
 .net-flow-box-premium {
-    background: #1e293b;
-    color: white;
+    background: #1e293b !important;
+    color: white !important;
     border-radius: 12px;
-    padding: 2.5rem;
+    padding: 1.5rem 2.5rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 1px solid #0f172a;
 }
 
 .net-flow-label {
@@ -232,10 +259,10 @@
 
 /* 7. Footer & Signatures */
 .report-footer-v2 {
-    margin-top: 6rem;
+    margin-top: 4rem;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10rem;
+    gap: 4rem;
 }
 
 .sig-block {

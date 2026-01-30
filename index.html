@@ -12,9 +12,9 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="./src/styles/index.css">
+    <link rel="stylesheet" href="./src/styles/index.css?v=10">
     <!-- Print Styles (Loaded globally for screen preview, restricted by @media print inside) -->
-    <link rel="stylesheet" href="./src/styles/print.css">
+    <link rel="stylesheet" href="./src/styles/print.css?v=3">
 </head>
 
 <body>
@@ -22,6 +22,7 @@
         <!-- Header -->
         <header>
             <div class="header-left">
+
                 <h1>Zikrullah TV LLC</h1>
                 <div class="month-navigator">
                     <button id="prevMonthBtn" class="nav-arrow" title="Previous Month">
@@ -74,8 +75,19 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                     </svg>
                 </button>
+                <!-- Mobile Menu Button (Right Side) -->
+                <button id="mobileMenuBtn" class="icon-btn mobile-only" style="margin-left: 0.5rem; display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
             </div>
         </header>
+
+        <!-- Mobile Date Picker Location -->
+        <div id="mobileDateLocation" class="mobile-date-container"></div>
 
         <!-- Main Navigation -->
         <div class="main-nav-container">
@@ -127,6 +139,12 @@
                                 <span class="currency-label">USD</span>
                                 <span class="currency-val usd" id="liqUSD">$0.00</span>
                             </div>
+                            <div class="avg-rate-display"
+                                style="font-size: 0.75rem; color: var(--text-muted); margin-top: -0.25rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 4px;">
+                                <span style="opacity: 0.7;">Avg. Rate:</span>
+                                <span id="avgBuyRate"
+                                    style="font-weight: 700; color: var(--brand-primary);">৳0.00</span>
+                            </div>
                             <div class="currency-row bdt-row">
                                 <span class="currency-label">BDT</span>
                                 <span class="currency-val bdt indigo" id="liqBDT">৳0.00</span>
@@ -154,7 +172,7 @@
                             </div>
                             <div class="currency-row bdt-row">
                                 <span class="currency-label">BDT</span>
-                                <span class="currency-val bdt green" id="monthReceiptsBDT">৳0.00</span>
+                                <span class="currency-val bdt text-success" id="monthReceiptsBDT">৳0.00</span>
                             </div>
                         </div>
                     </div>
@@ -178,7 +196,7 @@
                             </div>
                             <div class="currency-row bdt-row">
                                 <span class="currency-label">BDT</span>
-                                <span class="currency-val bdt orange" id="monthDisbursementsBDT">৳0.00</span>
+                                <span class="currency-val bdt text-danger" id="monthDisbursementsBDT">৳0.00</span>
                             </div>
                         </div>
                     </div>
@@ -193,6 +211,19 @@
 
         <!-- Incoming Funds Tab (Now a Main View) -->
         <div id="incomingTab" class="tab-content" style="display: none;">
+            <!-- Available Balance Summary for Incoming -->
+            <div class="mini-stats-grid"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <div class="card" style="padding: 1rem; border-left: 4px solid #cbd5e1;">
+                    <div class="card-label" style="font-size: 0.65rem; margin-bottom: 0.25rem;">Available USD</div>
+                    <div class="card-value" id="incLiqUSD" style="font-size: 1.1rem;">$0.00</div>
+                </div>
+                <div class="card" style="padding: 1rem; border-left: 4px solid var(--brand-primary);">
+                    <div class="card-label" style="font-size: 0.65rem; margin-bottom: 0.25rem;">Available BDT</div>
+                    <div class="card-value" id="incLiqBDT" style="font-size: 1.1rem; color: var(--brand-primary);">৳0.00
+                    </div>
+                </div>
+            </div>
             <div class="action-bar">
                 <div class="search-wrapper">
                     <input type="text" id="incSearch" placeholder="Search transactions...">
@@ -256,6 +287,13 @@
                     <div class="card-value" id="outLiqBDT" style="font-size: 1.1rem; color: var(--brand-primary);">৳0.00
                     </div>
                 </div>
+            </div>
+
+            <div class="mobile-sort-container mobile-only">
+                <button class="sort-chip active" data-sort="date">Date</button>
+                <button class="sort-chip" data-sort="status">Status</button>
+                <button class="sort-chip" data-sort="amountBDT">Amount</button>
+                <button class="sort-chip" data-sort="beneficiaryId">Receiver</button>
             </div>
 
             <div class="action-bar">
@@ -424,6 +462,13 @@
                     <div class="form-group">
                         <label>Rate</label>
                         <input type="number" step="0.01" name="rate" id="outRate" class="input-lg">
+                        <div id="outRateHint"
+                            style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; display: flex; align-items: center; gap: 4px;">
+                            <span>Avg. Buy Rate:</span>
+                            <span id="hintRateVal" style="font-weight: 700; color: var(--brand-primary);">৳0.00</span>
+                            <button type="button" id="applyAvgRateBtn"
+                                style="background: var(--brand-light); border: none; color: var(--brand-primary); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-weight: 700; margin-left: 4px;">Apply</button>
+                        </div>
                     </div>
                     <div class="form-group full-width">
                         <label>Receiver (Beneficiary)</label>
@@ -465,13 +510,15 @@
             </div>
             <div class="modal-content">
                 <form id="settingsForm">
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label>Opening Balance (USD)</label>
-                        <input type="number" step="0.01" id="setOpeningUSD" class="input-lg">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <label>Opening Balance (BDT)</label>
-                        <input type="number" step="0.01" id="setOpeningBDT" class="input-lg">
+                    <div id="openingBalanceSection" style="display: none;">
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <label>Opening Balance (USD)</label>
+                            <input type="number" step="0.01" id="setOpeningUSD" class="input-lg">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <label>Opening Balance (BDT)</label>
+                            <input type="number" step="0.01" id="setOpeningBDT" class="input-lg">
+                        </div>
                     </div>
                     <button type="button" id="clearDataBtn" class="btn-secondary"
                         style="width: 100%; margin-bottom: 1rem; border-color: var(--color-danger); color: var(--color-danger); border-radius: var(--radius-md); display: none;">⚠
@@ -484,6 +531,15 @@
                                 d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                         </svg>
                         Download Full Backup (JSON)
+                    </button>
+                    <button type="button" id="openHistoryModalBtn" class="btn-secondary"
+                        style="width: 100%; margin-bottom: 1rem; border-color: var(--brand-primary); color: var(--brand-primary); border-radius: var(--radius-md); background: #f0fdf4;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4" style="margin-right:0.5rem">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.242a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.242V21" />
+                        </svg>
+                        📘 View Full Transaction History
                     </button>
                     <button type="submit" class="btn-primary" style="width: 100%;">Save Settings</button>
                 </form>
@@ -553,6 +609,80 @@
         </div>
     </div>
 
+    <!-- Transaction History (All Time) Modal -->
+    <div id="historyModal" class="modal-overlay">
+        <div class="modal large-modal">
+            <div class="modal-header">
+                <h3>Full Transaction History</h3>
+                <button class="close-btn" id="closeHistoryModal">&times;</button>
+            </div>
+            <div class="modal-content">
+                <div class="action-bar" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <div class="search-wrapper" style="flex: 2; min-width: 250px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                        </svg>
+                        <input type="text" id="histSearch" placeholder="Search transactions...">
+                    </div>
+
+                    <!-- Month Filter -->
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="histMonth" class="input-lg" style="width: auto; padding: 0.5rem 2rem 0.5rem 1rem;">
+                            <option value="">All Months</option>
+                            <option value="01">Jan</option>
+                            <option value="02">Feb</option>
+                            <option value="03">Mar</option>
+                            <option value="04">Apr</option>
+                            <option value="05">May</option>
+                            <option value="06">Jun</option>
+                            <option value="07">Jul</option>
+                            <option value="08">Aug</option>
+                            <option value="09">Sep</option>
+                            <option value="10">Oct</option>
+                            <option value="11">Nov</option>
+                            <option value="12">Dec</option>
+                        </select>
+                        <select id="histYear" class="input-lg" style="width: auto; padding: 0.5rem 2rem 0.5rem 1rem;">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                            <option value="2027">2027</option>
+                        </select>
+                    </div>
+
+                    <button id="downloadBankStatementBtn" class="btn-primary"
+                        style="padding: 0.75rem 1.5rem; background: #065f46;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-4 h-4" style="margin-right: 0.5rem;">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                        </svg>
+                        Download Statement
+                    </button>
+                </div>
+
+                <div class="table-container" style="max-height: calc(100vh - 250px); overflow-y: auto;">
+                    <table id="historyTable" class="pro-table history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Identity</th>
+                                <th>USD</th>
+                                <th>BDT</th>
+                                <th>Rate</th>
+                                <th style="width: 60px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add/Edit Receiver Modal -->
     <div id="beneficiaryModal" class="modal-overlay">
         <div class="modal">
@@ -616,13 +746,14 @@
             <div class="modal-header no-print">
                 <h3>Monthly Executive Report</h3>
                 <div class="header-actions" style="display: flex; gap: 0.75rem; align-items: center;">
-                    <button id="printReportBtn" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                    <button id="downloadReportPdfBtn" class="btn-primary"
+                        style="padding: 0.5rem 1rem; font-size: 0.85rem; background: #1e293b; border-color: #0f172a;">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                             stroke="currentColor" class="w-4 h-4">
                             <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
+                                d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                         </svg>
-                        Print Report
+                        Download PDF
                     </button>
                     <button id="downloadReportBtn" class="btn-secondary"
                         style="padding: 0.5rem 1rem; font-size: 0.85rem;">
@@ -682,16 +813,16 @@
                             <span class="sum-val-sub" id="repOpeningUSD">$0.00</span>
                         </div>
                         <div class="sum-card">
-                            <span class="sum-label text-green">Total Money In (+)</span>
-                            <span class="sum-val text-green" id="repTotalIn">BDT 0.00</span>
+                            <span class="sum-label text-success">Total Money In (+)</span>
+                            <span class="sum-val text-success" id="repTotalIn">BDT 0.00</span>
                             <span class="sum-val-sub" id="repTotalInUSD">$0.00</span>
                         </div>
                         <div class="sum-card">
-                            <span class="sum-label text-orange">Total Money Out (-)</span>
-                            <span class="sum-val text-orange" id="repTotalOut">BDT 0.00</span>
+                            <span class="sum-label text-danger">Total Money Out (-)</span>
+                            <span class="sum-val text-danger" id="repTotalOut">BDT 0.00</span>
                             <span class="sum-val-sub" id="repTotalOutUSD">$0.00</span>
                         </div>
-                        <div class="sum-card highlight">
+                        <div class="sum-card highlight" id="repClosingCard">
                             <span class="sum-label">Closing Balance</span>
                             <span class="sum-val" id="repClosing">BDT 0.00</span>
                             <span class="sum-val-sub" id="repClosingUSD">$0.00</span>
@@ -781,25 +912,65 @@
     </div>
 
 
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal-overlay open"
-        style="z-index: 9999; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);">
-        <div class="modal" style="max-width: 400px; text-align: center; border: 1px solid var(--brand-primary);">
-            <div class="modal-header" style="justify-content: center; border: none;">
-                <h2 style="margin: 0; color: var(--brand-primary); font-family: 'Outfit';">Security Portal</h2>
+    <!-- Mobile Sidebar -->
+    <div id="mobileSidebarOverlay" class="sidebar-overlay mobile-only"></div>
+    <div id="mobileSidebar" class="mobile-sidebar mobile-only">
+        <div class="sidebar-header">
+            <h3>Menu</h3>
+            <button id="closeSidebarBtn" class="close-btn">&times;</button>
+        </div>
+        <div class="sidebar-content">
+            <button id="sidebarHistoryBtn" class="sidebar-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.242a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.242V21" />
+                </svg>
+                Full History
+            </button>
+            <button id="sidebarSettingsBtn" class="sidebar-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                </svg>
+                Settings
+            </button>
+            <button id="sidebarReportBtn" class="sidebar-item">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+                CEO Report
+            </button>
+            <button id="sidebarLogoutBtn" class="sidebar-item text-danger">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+                </svg>
+                Logout
+            </button>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal-overlay login-portal-overlay open">
+        <div class="modal login-portal-card" style="max-width: 400px;">
+            <div class="login-portal-header">
+                <h2>Security Portal</h2>
             </div>
-            <div class="modal-content" style="padding: 2rem;">
-                <p style="margin-bottom: 2rem; color: var(--text-secondary);">Please enter administrative credentials to
-                    access the financial dashboard.</p>
+            <div class="login-portal-content">
+                <p class="login-portal-description">Please enter administrative credentials to access the financial
+                    dashboard.</p>
                 <form id="loginForm">
-                    <div class="form-group" style="text-align: left;">
-                        <label
-                            style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">Access
-                            Password</label>
-                        <input type="password" id="loginPassword" class="input-lg" required placeholder="Enter password"
-                            style="text-align: center; font-size: 1.25rem; letter-spacing: 0.5em;">
+                    <div class="login-portal-group">
+                        <label class="login-portal-label">Access Password</label>
+                        <input type="password" id="loginPassword" class="login-portal-input" required
+                            placeholder="••••••">
                     </div>
-                    <button type="submit" class="btn-primary full-width" style="margin-top: 1.5rem; padding: 1rem;">
+                    <button type="submit" class="btn-primary login-portal-btn">
                         Authorize Access
                     </button>
                 </form>
@@ -812,7 +983,7 @@
 
     <!-- Scripts -->
 
-    <script type="module" src="./src/app.js?v=2"></script>
+    <script type="module" src="./src/app.js?v=31"></script>
 </body>
 
 </html>

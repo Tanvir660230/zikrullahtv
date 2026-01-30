@@ -103,9 +103,13 @@ class Store {
         const { openingBalanceUSD, openingBalanceBDT } = this.state.settings;
         const selectedMonth = this.state.selectedMonth; // "YYYY-MM"
 
-        // Global Opening Balance (Base)
-        let globalOpenUSD = parseFloat(openingBalanceUSD || 0);
-        let globalOpenBDT = parseFloat(openingBalanceBDT || 0);
+        // Global Opening Balance (Base) - Always ensure these are valid numbers
+        const globalOpenUSD = parseFloat(this.state.settings?.openingBalanceUSD) || 0;
+        const globalOpenBDT = parseFloat(this.state.settings?.openingBalanceBDT) || 0;
+
+        // Average Rate Calculation (Weighted basis of all incoming money)
+        let totalLifetimeUSDIn = globalOpenUSD;
+        let totalLifetimeBDTIn = globalOpenBDT;
 
         // Previous Month Carry Over Calculation
         let prevPeriodUSD = 0;
@@ -121,14 +125,25 @@ class Store {
             const txDate = tx.date; // YYYY-MM-DD
             const txMonth = txDate.slice(0, 7); // YYYY-MM
 
-            const amountUSD = parseFloat(tx.amountUSD || 0);
-            const amountBDT = parseFloat(tx.amountBDT || 0);
+            // Robust parsing
+            const amountUSD = Number(tx.amountUSD) || 0;
+            const amountBDT = Number(tx.amountBDT) || 0;
 
-            // Logic:
-            // If txMonth < selectedMonth: contributes to Opening Balance of selected month
-            // If txMonth == selectedMonth: contributes to Current Month Flow
-            // If txMonth > selectedMonth: ignored for this view
+            // Accumulate Lifetime Incoming for Average Rate
+            // We only count money that ACTUALLY added USD liquidity
+            if (tx.type === 'incoming' && tx.status !== 'hold') {
+                if (tx.subType === 'return') {
+                    // Returns reduce our total BDT/USD pool
+                    totalLifetimeUSDIn -= amountUSD;
+                    totalLifetimeBDTIn -= amountBDT;
+                } else {
+                    // Receipts add to our pool
+                    totalLifetimeUSDIn += amountUSD;
+                    totalLifetimeBDTIn += amountBDT;
+                }
+            }
 
+            // Logic for Selected Month:
             if (txMonth < selectedMonth) {
                 // Historic Transaction -> Carry Over
                 if (tx.type === 'incoming') {
@@ -176,6 +191,18 @@ class Store {
         const closingUSD = openingUSD + netMonthUSD;
         const closingBDT = openingBDT + netMonthBDT;
 
+        // Final Average Buy Rate calculation
+        let averageBuyRate = 0;
+        if (totalLifetimeUSDIn > 0 && totalLifetimeBDTIn > 0) {
+            averageBuyRate = totalLifetimeBDTIn / totalLifetimeUSDIn;
+        }
+
+        // If we still have 0, try to use the most recent transaction rate or settings rate as a fallback
+        if (averageBuyRate <= 0) {
+            const lastIncomingTx = this.state.transactions.find(t => t.type === 'incoming' && t.rate > 0);
+            averageBuyRate = lastIncomingTx ? lastIncomingTx.rate : (this.state.settings.lastRate || 0);
+        }
+
         this.state.liquidity = {
             openingUSD,
             openingBDT,
@@ -184,7 +211,8 @@ class Store {
             monthDisbursedUSD,
             monthDisbursedBDT,
             closingUSD,
-            closingBDT
+            closingBDT,
+            averageBuyRate
         };
     }
 

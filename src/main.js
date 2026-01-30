@@ -64,6 +64,38 @@ function init() {
 
     // Subscribe to store updates
     store.subscribe(render);
+
+    // Responsive Layout Handler
+    setupResponsiveLayout();
+}
+
+// --- Responsive Layout ---
+function setupResponsiveLayout() {
+    const monthNav = document.querySelector('.month-navigator');
+    const headerLeft = document.querySelector('.header-left');
+    const mobileLoc = document.getElementById('mobileDateLocation');
+
+    const handleResize = () => {
+        if (window.innerWidth <= 768) {
+            // Move to mobile location if not already there
+            if (mobileLoc && monthNav && mobileLoc.children.length === 0) {
+                mobileLoc.appendChild(monthNav);
+            }
+        } else {
+            // Move back to header if not already there
+            if (headerLeft && monthNav && headerLeft.children.length < 2) { // h1 is first child
+                // Ensure it goes after h1
+                if (headerLeft.children.length > 0) {
+                    headerLeft.appendChild(monthNav);
+                } else {
+                    headerLeft.appendChild(monthNav);
+                }
+            }
+        }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
 }
 
 // --- Event Listeners ---
@@ -98,6 +130,54 @@ function setupEventListeners() {
         els.settingsModal.classList.remove('open');
     });
 
+    // Sidebar Logic
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileSidebar = document.getElementById('mobileSidebar');
+    const mobileSidebarOverlay = document.getElementById('mobileSidebarOverlay');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    const sidebarReportBtn = document.getElementById('sidebarReportBtn');
+    const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
+    const sidebarSettingsBtn = document.getElementById('sidebarSettingsBtn');
+    const openReportModalBtn = document.getElementById('openReportModalBtn');
+
+    const openSidebar = () => {
+        mobileSidebar.classList.add('open');
+        mobileSidebarOverlay.classList.add('open');
+    };
+
+    const closeSidebar = () => {
+        mobileSidebar.classList.remove('open');
+        mobileSidebarOverlay.classList.remove('open');
+    };
+
+    if (mobileMenuBtn) mobileMenuBtn.addEventListener('click', openSidebar);
+    if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
+    if (mobileSidebarOverlay) mobileSidebarOverlay.addEventListener('click', closeSidebar);
+
+    // Sidebar Action Wiring
+    if (sidebarSettingsBtn) {
+        sidebarSettingsBtn.addEventListener('click', () => {
+            closeSidebar();
+            const settingsBtn = document.getElementById('openSettingsBtn');
+            if (settingsBtn) settingsBtn.click();
+        });
+    }
+
+    if (sidebarReportBtn) {
+        sidebarReportBtn.addEventListener('click', () => {
+            closeSidebar();
+            if (openReportModalBtn) openReportModalBtn.click();
+        });
+    }
+
+    if (sidebarLogoutBtn) {
+        sidebarLogoutBtn.addEventListener('click', () => {
+            closeSidebar();
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) logoutBtn.click();
+        });
+    }
+
     // Beneficiary Modal
     els.addBenBtn.addEventListener('click', (e) => {
         e.preventDefault(); // prevent form submit if inside form
@@ -108,10 +188,12 @@ function setupEventListeners() {
         e.preventDefault();
         const formData = new FormData(els.benForm);
         store.addBeneficiary({
-            name: formData.get('name'),
+            name: formData.get('name') || formData.get('nickname'), // Fallback if name changed
+            nickname: formData.get('nickname'),
             bankName: formData.get('bankName'),
             accountNo: formData.get('accountNo'),
-            branch: formData.get('branch')
+            branch: formData.get('branch'),
+            accountName: formData.get('accountName')
         });
         els.benForm.reset();
         els.benModal.classList.remove('open');
