@@ -505,7 +505,6 @@ function setupEventListeners() {
         const avgRate = store.state.liquidity.averageBuyRate || 0;
         if (avgRate > 0) {
             els.outRate.value = avgRate.toFixed(2);
-            els.outRate.dispatchEvent(new Event('input'));
         }
     });
 
@@ -820,8 +819,7 @@ function setupEventListeners() {
             els.incRate.value = tx.rate;
             els.incUSD.value = tx.amountUSD;
             els.incBDT.value = tx.amountBDT;
-            // Trigger calculation
-            els.incRate.dispatchEvent(new Event('input'));
+            // Removed auto-triggering calculation here to preserve precision of saved data
         } else {
             els.outgoingModal.classList.add('open');
             els.outId.value = tx.id; // SET ID
@@ -831,8 +829,7 @@ function setupEventListeners() {
             els.outRate.value = tx.rate;
             els.outUSD.value = tx.amountUSD;
             els.outBDT.value = tx.amountBDT;
-            // Trigger calculation
-            els.outRate.dispatchEvent(new Event('input'));
+            // Removed auto-triggering calculation here to preserve precision of saved data
         }
     }
 
@@ -861,19 +858,43 @@ function setupEventListeners() {
             els.bankPreview.style.display = 'none';
         }
 
-        // Auto-fill Rate from last INCOMING transaction (Fund Receive) priority
-        // as per "rate same as fund receive" request
-        const lastIncomingTx = store.state.transactions.find(t => t.type === 'incoming' && t.rate > 0);
+        // 1. Check for Pending/Hold to Merge (Robust Match)
+        const existingUnpaid = store.state.transactions.find(t =>
+            String(t.beneficiaryId) === String(benId) &&
+            t.type === 'outgoing' &&
+            ['pending', 'hold'].includes((t.status || '').toLowerCase())
+        );
 
-        if (lastIncomingTx) {
-            els.outRate.value = lastIncomingTx.rate;
+        if (existingUnpaid) {
+            // MERGE MODE
+            els.outId.value = existingUnpaid.id;
+            els.outUSD.value = existingUnpaid.amountUSD;
+            els.outBDT.value = existingUnpaid.amountBDT;
+            els.outRate.value = existingUnpaid.rate;
+
+            // Trigger calculation for visual consistency
             els.outRate.dispatchEvent(new Event('input'));
-        } else if (benId) {
-            // Fallback: Last tx for this beneficiary
-            const lastTx = store.state.transactions.find(t => t.beneficiaryId === benId && t.rate);
-            if (lastTx) {
-                els.outRate.value = lastTx.rate;
+
+            showToast(`Loaded Pending Tx ($${existingUnpaid.amountUSD}). Update total to merge.`, 'info');
+        } else {
+            // NEW ENTRY MODE
+            els.outId.value = '';
+            els.outUSD.value = '';
+            els.outBDT.value = '';
+
+            // Auto-fill Rate for new entries
+            const lastIncomingTx = store.state.transactions.find(t => t.type === 'incoming' && t.rate > 0);
+
+            if (lastIncomingTx) {
+                els.outRate.value = lastIncomingTx.rate;
                 els.outRate.dispatchEvent(new Event('input'));
+            } else if (benId) {
+                // Fallback: Last tx for this beneficiary
+                const lastTx = store.state.transactions.find(t => String(t.beneficiaryId) === String(benId) && t.rate);
+                if (lastTx) {
+                    els.outRate.value = lastTx.rate;
+                    els.outRate.dispatchEvent(new Event('input'));
+                }
             }
         }
     });
@@ -957,114 +978,82 @@ function setupEventListeners() {
 }
 
 function setupSmartCalc(usdInput, bdtInput, rateInput) {
-    let fixedAmount = 'usd'; // 'usd' or 'bdt' - tracks which field determines the other
+    let lastEdited = 'usd'; // Track whether user prefers USD or BDT as source
 
     // Helper to get values safely, returning null for empty/invalid
     const getVal = (input) => {
-        if (!input.value.trim()) return null;
-        const n = parseFloat(input.value);
+        const val = input.value.trim();
+        if (!val) return null;
+        const n = parseFloat(val);
         return isNaN(n) ? null : n;
     };
 
-    // Helper to set value avoiding "NaN" or "Infinity"
+    // Helper to set value avoiding "NaN" or "Infinity" and preventing "precision drift"
     const setVal = (input, val) => {
-        if (!isFinite(val) || isNaN(val)) {
-            input.value = '';
-        } else {
+        if (!isFinite(val) || isNaN(val) || val === null) return;
+
+        const current = getVal(input);
+        // ONLY update if it's significantly different (> 0.01) to prevent rounding drift
+        // This stops 120.00 from being overwritten by 119.9999999 during calculations
+        if (current === null || Math.abs(current - val) > 0.011) {
             input.value = val.toFixed(2);
         }
     };
 
-    // Debounce Helper
-    const debounce = (func, wait) => {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func(...args), wait);
-        };
-    };
-
-    const calculateRateChange = () => {
-        const rate = getVal(rateInput);
-        if (rate === null) return;
-
-        let usd = getVal(usdInput);
-        let bdt = getVal(bdtInput);
-
-        // SANITY CHECK: If "Fixed" field is empty, but "Other" field is present, switch fixed.
-        if (fixedAmount === 'usd' && usd === null && bdt !== null) {
-            fixedAmount = 'bdt';
-        } else if (fixedAmount === 'bdt' && bdt === null && usd !== null) {
-            fixedAmount = 'usd';
-        }
-
-        // If I was last typing in USD, then USD is Fixed -> Calc BDT
-        // If I was last typing in BDT, then BDT is Fixed -> Calc USD
-        if (fixedAmount === 'usd') {
-            if (usd !== null) setVal(bdtInput, usd * rate);
-        } else {
-            if (bdt !== null && rate !== 0) setVal(usdInput, bdt / rate);
-        }
-    };
-
-    const debouncedRateCalc = debounce(calculateRateChange, 600); // 600ms wait
-
-    // Track Intent via Focus & Click
-    usdInput.addEventListener('focus', () => fixedAmount = 'usd');
-    usdInput.addEventListener('click', () => fixedAmount = 'usd');
-
-    bdtInput.addEventListener('focus', () => fixedAmount = 'bdt');
-    bdtInput.addEventListener('click', () => fixedAmount = 'bdt');
-
-    // USD Changed
-    usdInput.addEventListener('input', () => {
-        fixedAmount = 'usd'; // User is actively editing USD
-
+    const calculate = (source) => {
         const usd = getVal(usdInput);
         const bdt = getVal(bdtInput);
         const rate = getVal(rateInput);
 
-        if (usd === null) {
-            if (rate !== null) bdtInput.value = '';
-            return;
+        // Scenario: User changes USD or just typed it
+        if (source === 'usd') {
+            lastEdited = 'usd';
+            // Update BDT if we have Rate
+            if (usd !== null && rate !== null) {
+                setVal(bdtInput, usd * rate);
+            }
+            // Derive Rate if we have BDT
+            else if (usd !== null && bdt !== null && usd !== 0) {
+                setVal(rateInput, bdt / usd);
+            }
         }
 
-        // Priority 1: If Rate is set, calculate BDT
-        if (rate !== null) {
-            setVal(bdtInput, usd * rate);
-        }
-        // Priority 2: If BDT is set (and no Rate), derive Rate
-        else if (bdt !== null && usd !== 0) {
-            setVal(rateInput, bdt / usd);
-        }
-    });
-
-    // BDT Changed
-    bdtInput.addEventListener('input', () => {
-        fixedAmount = 'bdt'; // User is actively editing BDT
-
-        const usd = getVal(usdInput);
-        const bdt = getVal(bdtInput);
-        const rate = getVal(rateInput);
-
-        if (bdt === null) {
-            if (usd !== null) rateInput.value = '';
-            else if (rate !== null) usdInput.value = '';
-            return;
+        // Scenario: User changes BDT
+        else if (source === 'bdt') {
+            lastEdited = 'bdt';
+            // Update USD if we have Rate
+            if (bdt !== null && rate !== null && rate !== 0) {
+                setVal(usdInput, bdt / rate);
+            }
+            // Derive Rate if we have USD
+            else if (bdt !== null && usd !== null && usd !== 0) {
+                setVal(rateInput, bdt / usd);
+            }
         }
 
-        // Priority 1: If Rate is set, calculate USD (Reverse calculation)
-        if (rate !== null && rate !== 0) {
-            setVal(usdInput, bdt / rate);
+        // Scenario: User changes Rate manually
+        else if (source === 'rate-manual') {
+            // Respect the user's intent: update the field they AREN'T currently focused on/last edited
+            if (lastEdited === 'bdt' && bdt !== null && rate !== 0) {
+                setVal(usdInput, bdt / rate);
+            } else if (usd !== null) {
+                setVal(bdtInput, usd * rate);
+            }
         }
-        // Priority 2: If USD is set (and no Rate), derive Rate
-        else if (usd !== null && usd !== 0) {
-            setVal(rateInput, bdt / usd);
-        }
-    });
+    };
 
-    // Rate Input - Instant (No Debounce)
-    rateInput.addEventListener('input', calculateRateChange);
+    // Debounce is NOT needed for simple arithmetic, removing it for better responsiveness
+
+    // Add Event Listeners
+    usdInput.addEventListener('input', () => calculate('usd'));
+    bdtInput.addEventListener('input', () => calculate('bdt'));
+    rateInput.addEventListener('input', () => calculate('rate-manual'));
+
+    // Track intent via click/focus
+    usdInput.addEventListener('focus', () => lastEdited = 'usd');
+    bdtInput.addEventListener('focus', () => lastEdited = 'bdt');
+    usdInput.addEventListener('click', () => lastEdited = 'usd');
+    bdtInput.addEventListener('click', () => lastEdited = 'bdt');
 }
 
 
@@ -1316,7 +1305,6 @@ function cloneTransaction(id) {
         els.incUSD.value = tx.amountUSD;
         els.incBDT.value = tx.amountBDT;
         els.incId.value = '';
-        els.incRate.dispatchEvent(new Event('input'));
         els.incomingModal.classList.add('open');
     } else {
         els.outDate.value = new Date().toISOString().split('T')[0];
@@ -1325,7 +1313,6 @@ function cloneTransaction(id) {
         els.outUSD.value = tx.amountUSD;
         els.outBDT.value = tx.amountBDT;
         els.outId.value = '';
-        els.outRate.dispatchEvent(new Event('input'));
         els.outgoingModal.classList.add('open');
     }
     showToast('Transaction Cloned. Review and Save.', 'success');
