@@ -485,7 +485,14 @@ function setupEventListeners() {
 
     // --- Modals ---
     // Incoming
-    els.openIncModalBtn.addEventListener('click', () => els.incomingModal.classList.add('open'));
+    els.openIncModalBtn.addEventListener('click', () => {
+        els.incomingModal.classList.add('open');
+        // Auto-fill Rate with the latest used incoming rate
+        const lastTx = [...store.state.transactions].reverse().find(t => t.type === 'incoming' && t.rate > 0);
+        if (lastTx) {
+            els.incRate.value = lastTx.rate;
+        }
+    });
     els.closeIncModal.addEventListener('click', () => els.incomingModal.classList.remove('open'));
     els.incomingModal.addEventListener('click', (e) => {
         if (e.target === els.incomingModal) els.incomingModal.classList.remove('open');
@@ -498,6 +505,7 @@ function setupEventListeners() {
         const avgRate = store.state.liquidity.averageBuyRate || 0;
         if (avgRate > 0) {
             els.outRate.value = avgRate.toFixed(2);
+            els.outRate.dispatchEvent(new Event('input'));
         }
     });
 
@@ -506,6 +514,7 @@ function setupEventListeners() {
             const avgRate = store.state.liquidity.averageBuyRate || 0;
             if (avgRate > 0) {
                 els.outRate.value = avgRate.toFixed(2);
+                els.outRate.dispatchEvent(new Event('input'));
                 showToast('Average Buy Rate Applied', 'info');
             }
         });
@@ -811,6 +820,8 @@ function setupEventListeners() {
             els.incRate.value = tx.rate;
             els.incUSD.value = tx.amountUSD;
             els.incBDT.value = tx.amountBDT;
+            // Trigger calculation
+            els.incRate.dispatchEvent(new Event('input'));
         } else {
             els.outgoingModal.classList.add('open');
             els.outId.value = tx.id; // SET ID
@@ -820,6 +831,8 @@ function setupEventListeners() {
             els.outRate.value = tx.rate;
             els.outUSD.value = tx.amountUSD;
             els.outBDT.value = tx.amountBDT;
+            // Trigger calculation
+            els.outRate.dispatchEvent(new Event('input'));
         }
     }
 
@@ -830,7 +843,7 @@ function setupEventListeners() {
         const lastTx = store.state.transactions.find(t => t.source === source && t.rate);
         if (lastTx) {
             els.incRate.value = lastTx.rate;
-            if (els.incUSD.value) els.incRate.dispatchEvent(new Event('input'));
+            els.incRate.dispatchEvent(new Event('input'));
         }
     });
 
@@ -854,13 +867,13 @@ function setupEventListeners() {
 
         if (lastIncomingTx) {
             els.outRate.value = lastIncomingTx.rate;
-            if (els.outUSD.value) els.outRate.dispatchEvent(new Event('input'));
+            els.outRate.dispatchEvent(new Event('input'));
         } else if (benId) {
             // Fallback: Last tx for this beneficiary
             const lastTx = store.state.transactions.find(t => t.beneficiaryId === benId && t.rate);
             if (lastTx) {
                 els.outRate.value = lastTx.rate;
-                if (els.outUSD.value) els.outRate.dispatchEvent(new Event('input'));
+                els.outRate.dispatchEvent(new Event('input'));
             }
         }
     });
@@ -944,27 +957,114 @@ function setupEventListeners() {
 }
 
 function setupSmartCalc(usdInput, bdtInput, rateInput) {
-    const calculate = (source) => {
-        const usd = parseFloat(usdInput.value);
-        const bdt = parseFloat(bdtInput.value);
-        const rate = parseFloat(rateInput.value);
+    let fixedAmount = 'usd'; // 'usd' or 'bdt' - tracks which field determines the other
 
-        if (source === 'usd' && !isNaN(usd) && !isNaN(rate)) {
-            bdtInput.value = (usd * rate).toFixed(2);
-        } else if (source === 'bdt') {
-            if (!isNaN(bdt) && !isNaN(usd) && usd !== 0) {
-                rateInput.value = (bdt / usd).toFixed(2);
-            } else if (!isNaN(bdt) && !isNaN(rate) && rate !== 0) {
-                usdInput.value = (bdt / rate).toFixed(2);
-            }
-        } else if (source === 'rate' && !isNaN(rate) && !isNaN(usd)) {
-            bdtInput.value = (usd * rate).toFixed(2);
+    // Helper to get values safely, returning null for empty/invalid
+    const getVal = (input) => {
+        if (!input.value.trim()) return null;
+        const n = parseFloat(input.value);
+        return isNaN(n) ? null : n;
+    };
+
+    // Helper to set value avoiding "NaN" or "Infinity"
+    const setVal = (input, val) => {
+        if (!isFinite(val) || isNaN(val)) {
+            input.value = '';
+        } else {
+            input.value = val.toFixed(2);
         }
     };
 
-    usdInput.addEventListener('input', () => calculate('usd'));
-    bdtInput.addEventListener('input', () => calculate('bdt'));
-    rateInput.addEventListener('input', () => calculate('rate'));
+    // Debounce Helper
+    const debounce = (func, wait) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    };
+
+    const calculateRateChange = () => {
+        const rate = getVal(rateInput);
+        if (rate === null) return;
+
+        let usd = getVal(usdInput);
+        let bdt = getVal(bdtInput);
+
+        // SANITY CHECK: If "Fixed" field is empty, but "Other" field is present, switch fixed.
+        if (fixedAmount === 'usd' && usd === null && bdt !== null) {
+            fixedAmount = 'bdt';
+        } else if (fixedAmount === 'bdt' && bdt === null && usd !== null) {
+            fixedAmount = 'usd';
+        }
+
+        // If I was last typing in USD, then USD is Fixed -> Calc BDT
+        // If I was last typing in BDT, then BDT is Fixed -> Calc USD
+        if (fixedAmount === 'usd') {
+            if (usd !== null) setVal(bdtInput, usd * rate);
+        } else {
+            if (bdt !== null && rate !== 0) setVal(usdInput, bdt / rate);
+        }
+    };
+
+    const debouncedRateCalc = debounce(calculateRateChange, 600); // 600ms wait
+
+    // Track Intent via Focus & Click
+    usdInput.addEventListener('focus', () => fixedAmount = 'usd');
+    usdInput.addEventListener('click', () => fixedAmount = 'usd');
+
+    bdtInput.addEventListener('focus', () => fixedAmount = 'bdt');
+    bdtInput.addEventListener('click', () => fixedAmount = 'bdt');
+
+    // USD Changed
+    usdInput.addEventListener('input', () => {
+        fixedAmount = 'usd'; // User is actively editing USD
+
+        const usd = getVal(usdInput);
+        const bdt = getVal(bdtInput);
+        const rate = getVal(rateInput);
+
+        if (usd === null) {
+            if (rate !== null) bdtInput.value = '';
+            return;
+        }
+
+        // Priority 1: If Rate is set, calculate BDT
+        if (rate !== null) {
+            setVal(bdtInput, usd * rate);
+        }
+        // Priority 2: If BDT is set (and no Rate), derive Rate
+        else if (bdt !== null && usd !== 0) {
+            setVal(rateInput, bdt / usd);
+        }
+    });
+
+    // BDT Changed
+    bdtInput.addEventListener('input', () => {
+        fixedAmount = 'bdt'; // User is actively editing BDT
+
+        const usd = getVal(usdInput);
+        const bdt = getVal(bdtInput);
+        const rate = getVal(rateInput);
+
+        if (bdt === null) {
+            if (usd !== null) rateInput.value = '';
+            else if (rate !== null) usdInput.value = '';
+            return;
+        }
+
+        // Priority 1: If Rate is set, calculate USD (Reverse calculation)
+        if (rate !== null && rate !== 0) {
+            setVal(usdInput, bdt / rate);
+        }
+        // Priority 2: If USD is set (and no Rate), derive Rate
+        else if (usd !== null && usd !== 0) {
+            setVal(rateInput, bdt / usd);
+        }
+    });
+
+    // Rate Input - Instant (No Debounce)
+    rateInput.addEventListener('input', calculateRateChange);
 }
 
 
@@ -1216,6 +1316,7 @@ function cloneTransaction(id) {
         els.incUSD.value = tx.amountUSD;
         els.incBDT.value = tx.amountBDT;
         els.incId.value = '';
+        els.incRate.dispatchEvent(new Event('input'));
         els.incomingModal.classList.add('open');
     } else {
         els.outDate.value = new Date().toISOString().split('T')[0];
@@ -1224,6 +1325,7 @@ function cloneTransaction(id) {
         els.outUSD.value = tx.amountUSD;
         els.outBDT.value = tx.amountBDT;
         els.outId.value = '';
+        els.outRate.dispatchEvent(new Event('input'));
         els.outgoingModal.classList.add('open');
     }
     showToast('Transaction Cloned. Review and Save.', 'success');
