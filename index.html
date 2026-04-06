@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="./src/styles/index.css?v=10">
     <!-- Print Styles (Loaded globally for screen preview, restricted by @media print inside) -->
     <link rel="stylesheet" href="./src/styles/print.css?v=3">
+    <!-- PDF Generation Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
@@ -404,41 +406,59 @@
                 <button class="close-btn" id="closeIncModal">&times;</button>
             </div>
             <div class="modal-content">
-                <form id="incomingForm" class="form-grid">
+                <form id="incomingForm">
                     <input type="hidden" id="incId">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" name="date" required id="incDate" class="input-lg">
+
+                    <div class="form-section-card">
+                        <div class="form-section-title">Transaction Details</div>
+                        <div class="form-grid" style="margin-bottom: 0;">
+                            <div class="form-group">
+                                <label>Date (Actual)</label>
+                                <input type="date" name="date" required id="incDate" class="input-lg">
+                            </div>
+                            <div class="form-group">
+                                <label>Accounted For <span class="text-sub">(Month)</span></label>
+                                <input type="month" name="accountingMonth" id="incAccMonth" required class="input-lg"
+                                    style="border-color: var(--brand-primary); background: #f0fdf4;">
+                            </div>
+                            <div class="form-group">
+                                <label>Action</label>
+                                <select name="subType" id="incType" class="input-lg">
+                                    <option value="receive">Receive (+)</option>
+                                    <option value="return">Return (-)</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width" style="margin-bottom: 0;">
+                                <label>Payer (Source)</label>
+                                <select name="source" id="incSource" required class="input-lg">
+                                    <option value="">Select Payer</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Action</label>
-                        <select name="subType" id="incType" class="input-lg">
-                            <option value="receive">Receive (+)</option>
-                            <option value="return">Return (-)</option>
-                        </select>
+
+                    <div class="form-section-card">
+                        <div class="form-section-title">Financial Record</div>
+                        <div class="form-grid" style="margin-bottom: 0;">
+                            <div class="form-group">
+                                <label>USD Amount ($)</label>
+                                <input type="number" step="0.01" name="amountUSD" id="incUSD" class="input-lg">
+                            </div>
+                            <div class="form-group">
+                                <label>BDT Amount (৳)</label>
+                                <input type="number" step="0.01" name="amountBDT" id="incBDT" class="input-lg">
+                            </div>
+                            <div class="form-group full-width" style="margin-bottom: 0;">
+                                <label>Conversion Rate</label>
+                                <input type="number" step="0.01" name="rate" id="incRate" placeholder="Ex: 120.5"
+                                    class="input-lg">
+                            </div>
+                        </div>
                     </div>
-                    <!-- Full width for source -->
-                    <div class="form-group full-width">
-                        <label>Payer (Source)</label>
-                        <select name="source" id="incSource" required class="input-lg">
-                            <option value="">Select Payer</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>USD Amount ($)</label>
-                        <input type="number" step="0.01" name="amountUSD" id="incUSD" class="input-lg">
-                    </div>
-                    <div class="form-group">
-                        <label>BDT Amount (৳)</label>
-                        <input type="number" step="0.01" name="amountBDT" id="incBDT" class="input-lg">
-                    </div>
-                    <div class="form-group">
-                        <label>Rate</label>
-                        <input type="number" step="0.01" name="rate" id="incRate" placeholder="Ex: 120.5"
-                            class="input-lg">
-                    </div>
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary full-width">Add Record</button>
+
+                    <div class="form-group full-width" style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn-primary full-width"
+                            style="padding: 1rem; font-size: 1.05rem;">Save Money In Record</button>
                     </div>
                 </form>
             </div>
@@ -453,48 +473,72 @@
                 <button class="close-btn" id="closeOutModal">&times;</button>
             </div>
             <div class="modal-content">
-                <form id="outgoingForm" class="form-grid">
+                <form id="outgoingForm">
                     <input type="hidden" id="outId">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" name="date" required id="outDate" class="input-lg">
-                    </div>
-                    <div class="form-group">
-                        <label>Rate</label>
-                        <input type="number" step="0.01" name="rate" id="outRate" class="input-lg">
-                        <div id="outRateHint"
-                            style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; display: flex; align-items: center; gap: 4px;">
-                            <span>Avg. Buy Rate:</span>
-                            <span id="hintRateVal" style="font-weight: 700; color: var(--brand-primary);">৳0.00</span>
-                            <button type="button" id="applyAvgRateBtn"
-                                style="background: var(--brand-light); border: none; color: var(--brand-primary); font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; cursor: pointer; font-weight: 700; margin-left: 4px;">Apply</button>
-                        </div>
-                    </div>
-                    <div class="form-group full-width">
-                        <label>Receiver (Beneficiary)</label>
-                        <select name="beneficiaryId" id="outBeneficiary" required class="input-lg">
-                            <option value="">Select Receiver</option>
-                        </select>
-                        <div id="bankPreview" class="bank-preview"
-                            style="display: none; margin-top: 1rem; padding: 1rem; background: var(--brand-light); border-radius: var(--radius-md); border: 1px solid var(--brand-primary);">
-                            <div style="font-weight: 700; color: var(--brand-primary);" id="prevDisplayName">Receiver
-                                Name</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);" id="prevBankName">Bank Name
+
+                    <div class="form-section-card">
+                        <div class="form-section-title">Transfer Details</div>
+                        <div class="form-grid" style="margin-bottom: 0;">
+                            <div class="form-group">
+                                <label>Date (Actual)</label>
+                                <input type="date" name="date" required id="outDate" class="input-lg">
                             </div>
-                            <div style="font-size: 0.85rem; color: var(--text-muted); font-family: monospace;"
-                                id="prevAccNo">Acc: ***</div>
+                            <div class="form-group">
+                                <label>Accounted For <span class="text-sub">(Month)</span></label>
+                                <input type="month" name="accountingMonth" id="outAccMonth" required class="input-lg"
+                                    style="border-color: var(--brand-primary); background: #f0fdf4;">
+                            </div>
+                            <div class="form-group full-width" style="margin-bottom: 0;">
+                                <label>Receiver (Beneficiary)</label>
+                                <select name="beneficiaryId" id="outBeneficiary" required class="input-lg">
+                                    <option value="">Select Receiver</option>
+                                </select>
+                                <div id="bankPreview" class="bank-preview"
+                                    style="display: none; margin-top: 1rem; padding: 1.25rem; background: #ffffff; border-radius: var(--radius-md); border: 1px solid var(--border-light); box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                                    <div style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem; border-bottom: 1px dashed var(--border-light); padding-bottom: 0.5rem; margin-bottom: 0.5rem;"
+                                        id="prevDisplayName">Receiver Name</div>
+                                    <div style="font-size: 0.9rem; color: var(--text-secondary);" id="prevBankName">Bank
+                                        Name</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted); font-family: monospace; letter-spacing: 0.05em; margin-top: 0.25rem;"
+                                        id="prevAccNo">Acc: ***</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>USD Amount ($)</label>
-                        <input type="number" step="0.01" name="amountUSD" id="outUSD" class="input-lg">
+
+                    <div class="form-section-card">
+                        <div class="form-section-title">Financial Record</div>
+                        <div class="form-grid" style="margin-bottom: 0;">
+                            <div class="form-group">
+                                <label>USD Amount ($)</label>
+                                <input type="number" step="0.01" name="amountUSD" id="outUSD" class="input-lg">
+                            </div>
+                            <div class="form-group">
+                                <label>BDT Amount (৳)</label>
+                                <input type="number" step="0.01" name="amountBDT" id="outBDT" class="input-lg">
+                            </div>
+                            <div class="form-group full-width" style="margin-bottom: 0;">
+                                <div
+                                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+                                    <label style="margin-bottom:0;">Conversion Rate</label>
+                                    <div id="outRateHint"
+                                        style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                                        <span>Avg. Buy Rate:</span>
+                                        <span id="hintRateVal"
+                                            style="font-weight: 700; color: var(--brand-primary);">৳0.00</span>
+                                        <button type="button" id="applyAvgRateBtn"
+                                            style="background: var(--brand-light); border: none; color: var(--brand-primary); font-size: 0.7rem; padding: 2px 8px; border-radius: var(--radius-full); cursor: pointer; font-weight: 700;">Apply</button>
+                                    </div>
+                                </div>
+                                <input type="number" step="0.01" name="rate" id="outRate" class="input-lg">
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>BDT Amount (৳)</label>
-                        <input type="number" step="0.01" name="amountBDT" id="outBDT" class="input-lg">
-                    </div>
-                    <div class="form-group full-width">
-                        <button type="submit" class="btn-primary full-width">Create Pending Order</button>
+
+                    <div class="form-group full-width" style="margin-top: 1.5rem;">
+                        <button type="submit" class="btn-primary full-width"
+                            style="padding: 1rem; font-size: 1.05rem; background: var(--warning); color: white;">Create
+                            Pending Order</button>
                     </div>
                 </form>
             </div>
@@ -770,16 +814,12 @@
                 </div>
             </div>
 
-            <div class="modal-content">
+            <div class="modal-content" id="printableReportArea">
                 <!-- Professional Header -->
                 <div class="inv-header">
                     <div class="inv-brand">
                         <h1 class="corp-title">Zikrullah TV LLC</h1>
                         <p class="corp-subtitle">EXECUTIVE FINANCIAL OPERATIONS REPORT</p>
-                        <div class="corp-address">
-                            Global Operations Center<br>
-                            Financial Services Division
-                        </div>
                     </div>
                     <div class="inv-meta">
                         <div class="inv-meta-item">
@@ -793,15 +833,7 @@
                     </div>
                 </div>
 
-                <!-- Strategic Performance Insights -->
-                <div class="report-section insights-section">
-                    <h4 class="report-section-title">Strategic Performance Insights</h4>
-                    <div class="insights-container">
-                        <p id="repInsights" class="insights-p">
-                            Initialing financial analysis for the selected period...
-                        </p>
-                    </div>
-                </div>
+
 
                 <!-- Executive Summary -->
                 <div class="report-section">
@@ -809,22 +841,22 @@
                     <div class="summary-grid">
                         <div class="sum-card">
                             <span class="sum-label">Opening Balance</span>
-                            <span class="sum-val" id="repOpening">BDT 0.00</span>
+                            <span class="sum-val" id="repOpening">৳0.00</span>
                             <span class="sum-val-sub" id="repOpeningUSD">$0.00</span>
                         </div>
                         <div class="sum-card">
                             <span class="sum-label text-success">Total Money In (+)</span>
-                            <span class="sum-val text-success" id="repTotalIn">BDT 0.00</span>
+                            <span class="sum-val text-success" id="repTotalIn">৳0.00</span>
                             <span class="sum-val-sub" id="repTotalInUSD">$0.00</span>
                         </div>
                         <div class="sum-card">
                             <span class="sum-label text-danger">Total Money Out (-)</span>
-                            <span class="sum-val text-danger" id="repTotalOut">BDT 0.00</span>
+                            <span class="sum-val text-danger" id="repTotalOut">৳0.00</span>
                             <span class="sum-val-sub" id="repTotalOutUSD">$0.00</span>
                         </div>
                         <div class="sum-card highlight" id="repClosingCard">
                             <span class="sum-label">Closing Balance</span>
-                            <span class="sum-val" id="repClosing">BDT 0.00</span>
+                            <span class="sum-val" id="repClosing">৳0.00</span>
                             <span class="sum-val-sub" id="repClosingUSD">$0.00</span>
                         </div>
                     </div>
@@ -840,7 +872,7 @@
                                 <tr>
                                     <th>Payer Name</th>
                                     <th class="text-right">USD Amount</th>
-                                    <th class="text-right">BDT Total</th>
+                                    <th class="text-right">৳Total</th>
                                 </tr>
                             </thead>
                             <tbody id="repInBody">
@@ -850,7 +882,7 @@
                                 <tr>
                                     <td><strong>Total</strong></td>
                                     <td class="text-right"><strong id="repInTotalUSD">$0.00</strong></td>
-                                    <td class="text-right"><strong id="repInTotal">BDT 0.00</strong></td>
+                                    <td class="text-right"><strong id="repInTotal">৳0.00</strong></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -864,7 +896,7 @@
                                 <tr>
                                     <th>Receiver Name</th>
                                     <th class="text-right">USD Amount</th>
-                                    <th class="text-right">BDT Total</th>
+                                    <th class="text-right">৳Total</th>
                                 </tr>
                             </thead>
                             <tbody id="repOutBody">
@@ -874,7 +906,7 @@
                                 <tr>
                                     <td><strong>Total</strong></td>
                                     <td class="text-right"><strong id="repOutTotalUSD">$0.00</strong></td>
-                                    <td class="text-right"><strong id="repOutTotal">BDT 0.00</strong></td>
+                                    <td class="text-right"><strong id="repOutTotal">৳0.00</strong></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -885,9 +917,9 @@
                 <div class="report-section" style="margin-top: 2rem;">
                     <div class="net-flow-box-premium">
                         <div class="net-flow-data">
-                            <span class="net-flow-label">Monthly Net Performance</span>
+                            <span class="net-flow-label">Total Liquidity Position (Balance)</span>
                             <div class="net-flow-values">
-                                <strong id="repNetFlow">BDT 0.00</strong>
+                                <strong id="repNetFlow">৳0.00</strong>
                                 <span id="repNetFlowUSD">$0.00</span>
                             </div>
                         </div>
