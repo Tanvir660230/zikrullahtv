@@ -26,11 +26,22 @@
     color: var(--report-text);
 }
 
-/* 2. Professional Header */
+/* 2. Professional Header - Clean Full Bar */
+.inv-header {
+    background: #064e3b; /* Professional Solid Dark Green Bar */
+    color: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center; 
+    margin-bottom: 3.5rem;
+}
+
 .corp-title {
     font-size: 2.5rem;
-    font-weight: 800;
-    color: var(--report-brand);
+    font-weight: 900;
+    color: #ffffff; /* White Text */
     letter-spacing: -0.04em;
     margin: 0;
     line-height: 1;
@@ -39,17 +50,17 @@
 .corp-subtitle {
     font-size: 0.85rem;
     font-weight: 700;
-    color: var(--report-muted);
+    color: #a7f3d0; /* Soft Green for contrast */
     letter-spacing: 0.25em;
     text-transform: uppercase;
-    margin-top: 0.75rem;
+    margin-top: 0.5rem;
 }
 
 .corp-address {
     font-size: 0.75rem;
     color: var(--report-muted);
-    line-height: 1.6;
-    margin-top: 1rem;
+    line-height: 1.5;
+    margin-top: 0.75rem;
 }
 
 .inv-meta {
@@ -59,7 +70,7 @@
 .inv-meta-item .inv-label {
     font-size: 0.65rem;
     font-weight: 800;
-    color: var(--report-muted);
+    color: #a7f3d0;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     display: block;
@@ -67,9 +78,9 @@
 }
 
 .inv-meta-item .inv-value {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--report-text);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
 }
 
 /* 3. Strategic Insights */
@@ -95,18 +106,42 @@
 
 /* 4. Executive Summary Grid */
 .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4rem; /* Better section gap */
 }
 
 .sum-card {
+    width: 23.5%;
+    box-sizing: border-box;
     padding: 1.5rem;
-    border-radius: 8px;
+    border-radius: 12px;
     background: white;
     border: 1px solid var(--report-border);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
 }
+
+/* Specific Card Emphasis */
+.sum-card:nth-child(1), .sum-card:nth-child(4) {
+    border-top: 4px solid #cbd5e1; /* Neutral opening/closing */
+}
+.sum-card:nth-child(2) {
+    background: #f0fdf4; 
+    border-color: #bbf7d0;
+    border-top: 4px solid #16a34a; /* Income green emphasis */
+}
+.sum-card:nth-child(2) .sum-val, .sum-card:nth-child(2) .sum-val-sub { color: #16a34a; }
+
+.sum-card:nth-child(3) {
+    background: #fef2f2;
+    border-color: #fecaca;
+    border-top: 4px solid #dc2626; /* Outlay red emphasis */
+}
+.sum-card:nth-child(3) .sum-val, .sum-card:nth-child(3) .sum-val-sub { color: #dc2626; }
 
 .sum-card.highlight {
     background: #f8fafc;
@@ -150,19 +185,24 @@
 
 /* 5. Tables & Data */
 .report-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
-    margin-bottom: 3rem;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3.5rem; /* More breathing room */
+}
+.report-col {
+    width: calc(50% - 16px); /* Exact 50/50 strict split with 32px gap equivalent */
+    box-sizing: border-box;
 }
 
 .report-section-title {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 800;
-    color: var(--report-muted);
+    color: #334155;
     text-transform: uppercase;
     letter-spacing: 0.15em;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--report-border);
     display: block;
 }
 
@@ -172,24 +212,42 @@
 }
 
 .report-table th {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     text-align: left;
-    color: var(--report-muted);
-    padding: 0.75rem 0;
+    color: #475569;
+    background-color: #f8fafc;
+    padding: 1.25rem 0.5rem; /* Reduced horizontal padding for more room */
     border-bottom: 2px solid var(--report-border);
     text-transform: uppercase;
+    font-weight: 600;
+}
+
+.report-table th:first-child {
+    width: 45%; 
+    padding-left: 0 !important;
+}
+
+.report-table td:first-child {
+    padding-left: 0 !important;
 }
 
 .report-table td {
-    padding: 0.85rem 0;
+    display: table-cell !important;
+    padding: 1rem 0.5rem; 
     font-size: 0.9rem;
-    border-bottom: 1px solid #f1f5f9;
+    font-weight: 400;
+    border-bottom: 1px dashed #e2e8f0;
+}
+
+.report-table tbody tr:nth-child(even) {
+    background-color: transparent; /* Disable zebra background completely */
 }
 
 .report-table tfoot td {
-    padding-top: 1rem;
+    padding: 1.5rem 1rem;
+    border-bottom: none;
     border-top: 2px solid var(--report-border);
-    font-weight: 800;
+    font-weight: 800; 
 }
 
 .text-right {
@@ -197,11 +255,11 @@
 }
 
 .text-success {
-    color: var(--success-text) !important;
+    color: #16a34a !important; /* Proper consistent income green */
 }
 
 .text-danger {
-    color: var(--danger-text) !important;
+    color: #dc2626 !important; /* Proper consistent expense red */
 }
 
 /* 6. Net Performance Indicator */
@@ -260,12 +318,12 @@
 /* 7. Footer & Signatures */
 .report-footer-v2 {
     margin-top: 4rem;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 4rem;
+    display: flex;
+    justify-content: space-between;
 }
 
 .sig-block {
+    width: 45%;
     text-align: center;
 }
 

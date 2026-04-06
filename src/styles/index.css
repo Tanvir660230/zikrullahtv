@@ -2079,3 +2079,60 @@ tbody tr.status-pending {
 .login-portal-btn:active {
     transform: scale(0.98);
 }
+/* --- Added for UI Grouping --- */
+.form-section-card {
+    background: #f8fafc;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.form-section-card .form-section-title {
+    margin-top: -0.5rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px dashed var(--border-light);
+    color: var(--brand-primary);
+}
+
+/* --- Print Optimization for CEO Report --- */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #reportModal, #reportModal * {
+        visibility: visible;
+    }
+    #reportModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        background: white;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    .modal.report-modal-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border: none;
+        transform: none;
+    }
+    .no-print, .modal-header {
+        display: none !important;
+    }
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    @page {
+        size: A4 portrait;
+        margin: 1.5cm;
+    }
+}

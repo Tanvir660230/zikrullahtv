@@ -102,6 +102,7 @@ const els = {
     // Forms
     incomingForm: document.getElementById('incomingForm'),
     incDate: document.getElementById('incDate'),
+    incAccMonth: document.getElementById('incAccMonth'),
     incId: document.getElementById('incId'),
     incType: document.getElementById('incType'),
     incSource: document.getElementById('incSource'),
@@ -111,6 +112,7 @@ const els = {
 
     outgoingForm: document.getElementById('outgoingForm'),
     outDate: document.getElementById('outDate'),
+    outAccMonth: document.getElementById('outAccMonth'),
     outId: document.getElementById('outId'),
     outBeneficiary: document.getElementById('outBeneficiary'),
     outUSD: document.getElementById('outUSD'),
@@ -222,6 +224,8 @@ async function initApp() {
         const today = new Date().toISOString().split('T')[0];
         els.incDate.value = today;
         els.outDate.value = today;
+        els.incAccMonth.value = today.slice(0, 7);
+        els.outAccMonth.value = today.slice(0, 7);
 
         const [currYear, currMonth] = today.slice(0, 7).split('-');
         els.yearInput.value = currYear;
@@ -356,27 +360,27 @@ function setupEventListeners() {
         if (els.mobileSidebarOverlay) els.mobileSidebarOverlay.classList.remove('open');
     };
 
-    if (els.mobileMenuBtn) els.mobileMenuBtn.addEventListener('click', openSidebar);
-    if (els.closeSidebarBtn) els.closeSidebarBtn.addEventListener('click', closeSidebar);
-    if (els.mobileSidebarOverlay) els.mobileSidebarOverlay.addEventListener('click', closeSidebar);
+    if (els.mobileMenuBtn) els.mobileMenuBtn?.addEventListener('click', openSidebar);
+    if (els.closeSidebarBtn) els.closeSidebarBtn?.addEventListener('click', closeSidebar);
+    if (els.mobileSidebarOverlay) els.mobileSidebarOverlay?.addEventListener('click', closeSidebar);
 
     // Sidebar Actions
     if (els.sidebarReportBtn) {
-        els.sidebarReportBtn.addEventListener('click', () => {
+        els.sidebarReportBtn?.addEventListener('click', () => {
             closeSidebar();
             if (els.openReportModalBtn) els.openReportModalBtn.click();
         });
     }
 
     if (els.sidebarSettingsBtn) {
-        els.sidebarSettingsBtn.addEventListener('click', () => {
+        els.sidebarSettingsBtn?.addEventListener('click', () => {
             closeSidebar();
             if (els.settingsBtn) els.settingsBtn.click();
         });
     }
 
     if (els.sidebarLogoutBtn) {
-        els.sidebarLogoutBtn.addEventListener('click', () => {
+        els.sidebarLogoutBtn?.addEventListener('click', () => {
             closeSidebar();
             if (els.logoutBtn) els.logoutBtn.click();
         });
@@ -402,12 +406,12 @@ function setupEventListeners() {
         }
     };
 
-    els.navDashboard.addEventListener('click', () => updateNav('dashboard'));
-    els.navMoneyIn.addEventListener('click', () => updateNav('money-in'));
-    els.navMoneyOut.addEventListener('click', () => updateNav('money-out'));
+    els.navDashboard?.addEventListener('click', () => updateNav('dashboard'));
+    els.navMoneyIn?.addEventListener('click', () => updateNav('money-in'));
+    els.navMoneyOut?.addEventListener('click', () => updateNav('money-out'));
 
     // --- Login ---
-    els.loginForm.addEventListener('submit', (e) => {
+    els.loginForm?.addEventListener('submit', (e) => {
         e.preventDefault();
         const pwd = els.loginPassword.value;
         if (pwd === 'admin123#') {
@@ -420,7 +424,7 @@ function setupEventListeners() {
         }
     });
 
-    els.logoutBtn.addEventListener('click', () => {
+    els.logoutBtn?.addEventListener('click', () => {
         if (confirm('Are you sure you want to log out?')) {
             sessionStorage.removeItem('isAuth');
             window.location.reload();
@@ -429,7 +433,7 @@ function setupEventListeners() {
 
     // --- Secret Reset Logic ---
     let secretClickCount = 0;
-    els.settingsHeaderTitle.addEventListener('click', () => {
+    els.settingsHeaderTitle?.addEventListener('click', () => {
         secretClickCount++;
         if (secretClickCount === 5) {
             els.clearDataBtn.style.display = 'block';
@@ -438,7 +442,7 @@ function setupEventListeners() {
         }
     });
 
-    els.clearDataBtn.addEventListener('click', async () => {
+    els.clearDataBtn?.addEventListener('click', async () => {
         const confirmCode = prompt('⚠ EXTREME WARNING: This will permanently delete ALL Cloud data.\nTo proceed, type the Master Key (RESET-99):');
 
         if (confirmCode === 'RESET-99') {
@@ -457,12 +461,12 @@ function setupEventListeners() {
             showToast('Incorrect Master Key', 'error');
         }
     });
-    els.monthSelect.addEventListener('change', updateStoreDate);
-    els.yearInput.addEventListener('change', updateStoreDate);
+    els.monthSelect?.addEventListener('change', updateStoreDate);
+    els.yearInput?.addEventListener('change', updateStoreDate);
 
     // Smart Nav Arrows
-    els.prevMonthBtn.addEventListener('click', () => changeMonth(-1));
-    els.nextMonthBtn.addEventListener('click', () => changeMonth(1));
+    els.prevMonthBtn?.addEventListener('click', () => changeMonth(-1));
+    els.nextMonthBtn?.addEventListener('click', () => changeMonth(1));
 
     // Mobile Sorting (Chips)
     document.querySelectorAll('.sort-chip').forEach(chip => {
@@ -485,7 +489,7 @@ function setupEventListeners() {
 
     // --- Modals ---
     // Incoming
-    els.openIncModalBtn.addEventListener('click', () => {
+    els.openIncModalBtn?.addEventListener('click', () => {
         els.incomingModal.classList.add('open');
         // Auto-fill Rate with the latest used incoming rate (Prioritize LocalStorage)
         const savedRate = localStorage.getItem('lastIncRate');
@@ -497,14 +501,16 @@ function setupEventListeners() {
                 els.incRate.value = lastTx.rate;
             }
         }
+        // Default Accounting Month to current selection
+        els.incAccMonth.value = store.state.selectedMonth;
     });
-    els.closeIncModal.addEventListener('click', () => els.incomingModal.classList.remove('open'));
-    els.incomingModal.addEventListener('click', (e) => {
+    els.closeIncModal?.addEventListener('click', () => els.incomingModal.classList.remove('open'));
+    els.incomingModal?.addEventListener('click', (e) => {
         if (e.target === els.incomingModal) els.incomingModal.classList.remove('open');
     });
 
     // Outgoing
-    els.openOutModalBtn.addEventListener('click', () => {
+    els.openOutModalBtn?.addEventListener('click', () => {
         els.outgoingModal.classList.add('open');
         // Auto-fill Rate with Average Buy Rate for perfect maintenance
         const avgRate = store.state.liquidity.averageBuyRate || 0;
@@ -514,7 +520,7 @@ function setupEventListeners() {
     });
 
     if (els.applyAvgRateBtn) {
-        els.applyAvgRateBtn.addEventListener('click', () => {
+        els.applyAvgRateBtn?.addEventListener('click', () => {
             const avgRate = store.state.liquidity.averageBuyRate || 0;
             if (avgRate > 0) {
                 els.outRate.value = avgRate.toFixed(2);
@@ -523,18 +529,18 @@ function setupEventListeners() {
             }
         });
     }
-    els.closeOutModal.addEventListener('click', () => els.outgoingModal.classList.remove('open'));
+    els.closeOutModal?.addEventListener('click', () => els.outgoingModal.classList.remove('open'));
 
     // History listeners
     if (els.openHistoryModalBtn) {
-        els.openHistoryModalBtn.addEventListener('click', () => {
+        els.openHistoryModalBtn?.addEventListener('click', () => {
             renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value);
             els.historyModal.classList.add('open');
         });
     }
 
     if (els.sidebarHistoryBtn) {
-        els.sidebarHistoryBtn.addEventListener('click', () => {
+        els.sidebarHistoryBtn?.addEventListener('click', () => {
             renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value);
             els.historyModal.classList.add('open');
             els.mobileSidebar.classList.remove('open');
@@ -543,61 +549,61 @@ function setupEventListeners() {
     }
 
     if (els.closeHistoryModal) {
-        els.closeHistoryModal.addEventListener('click', () => {
+        els.closeHistoryModal?.addEventListener('click', () => {
             els.historyModal.classList.remove('open');
         });
     }
 
     if (els.histSearch) {
-        els.histSearch.addEventListener('input', debounce(() => {
+        els.histSearch?.addEventListener('input', debounce(() => {
             renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value, els.histMonth.value, els.histYear.value);
         }, 300));
     }
 
     if (els.histMonth) {
-        els.histMonth.addEventListener('change', () => {
+        els.histMonth?.addEventListener('change', () => {
             renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value, els.histMonth.value, els.histYear.value);
         });
     }
 
     if (els.histYear) {
-        els.histYear.addEventListener('change', () => {
+        els.histYear?.addEventListener('change', () => {
             renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value, els.histMonth.value, els.histYear.value);
         });
     }
 
     if (els.downloadBankStatementBtn) {
-        els.downloadBankStatementBtn.addEventListener('click', () => {
+        els.downloadBankStatementBtn?.addEventListener('click', () => {
             downloadBankStatement(store.state.transactions, store.state.beneficiaries, els.histMonth.value, els.histYear.value);
         });
     }
 
     // Settings
-    els.settingsBtn.addEventListener('click', () => {
+    els.settingsBtn?.addEventListener('click', () => {
         const { openingBalanceUSD, openingBalanceBDT } = store.state.settings;
         els.setOpeningUSD.value = openingBalanceUSD || 0;
         els.setOpeningBDT.value = openingBalanceBDT || 0;
         els.settingsModal.classList.add('open');
     });
-    els.closeSettingsModal.addEventListener('click', () => els.settingsModal.classList.remove('open'));
+    els.closeSettingsModal?.addEventListener('click', () => els.settingsModal.classList.remove('open'));
 
     // Sources
-    els.closeSourcesModal.addEventListener('click', () => els.sourcesModal.classList.remove('open'));
+    els.closeSourcesModal?.addEventListener('click', () => els.sourcesModal.classList.remove('open'));
 
     // Beneficiary List
-    els.closeBenListModal.addEventListener('click', () => els.beneficiariesListModal.classList.remove('open'));
+    els.closeBenListModal?.addEventListener('click', () => els.beneficiariesListModal.classList.remove('open'));
 
     // Beneficiary Edit
-    els.closeBenModal.addEventListener('click', () => els.beneficiaryModal.classList.remove('open'));
+    els.closeBenModal?.addEventListener('click', () => els.beneficiaryModal.classList.remove('open'));
 
     // Report
-    els.closeReportModal.addEventListener('click', () => els.reportModal.classList.remove('open'));
+    els.closeReportModal?.addEventListener('click', () => els.reportModal.classList.remove('open'));
 
     // Backup
-    els.downloadBackupBtn.addEventListener('click', downloadFullBackup);
+    els.downloadBackupBtn?.addEventListener('click', downloadFullBackup);
 
     // Report Download
-    els.downloadReportBtn.addEventListener('click', () => {
+    els.downloadReportBtn?.addEventListener('click', () => {
         exportCEOReportCSV();
     });
 
@@ -611,7 +617,7 @@ function setupEventListeners() {
     });
 
     // Settings Save
-    els.settingsForm.addEventListener('submit', (e) => {
+    els.settingsForm?.addEventListener('submit', (e) => {
         e.preventDefault();
         store.saveSettings({
             ...store.state.settings,
@@ -623,7 +629,7 @@ function setupEventListeners() {
 
     // Clear Data
     if (els.clearDataBtn) {
-        els.clearDataBtn.addEventListener('click', () => {
+        els.clearDataBtn?.addEventListener('click', () => {
             if (confirm('⚠ Are you sure you want to DELETE ALL TRANSACTIONS?\n\nThis action cannot be undone.')) {
                 store.clearAllData();
                 els.settingsModal.classList.remove('open');
@@ -632,19 +638,19 @@ function setupEventListeners() {
     }
 
     // --- Sources Management ---
-    els.manageSourcesBtn.addEventListener('click', () => {
+    els.manageSourcesBtn?.addEventListener('click', () => {
         renderSourcesList(store.state.sources);
         els.sourcesModal.classList.add('open');
     });
 
-    els.addSourceForm.addEventListener('submit', (e) => {
+    els.addSourceForm?.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(els.addSourceForm);
         store.addSource({ name: formData.get('name') });
         els.addSourceForm.reset();
     });
 
-    els.sourcesList.addEventListener('click', (e) => {
+    els.sourcesList?.addEventListener('click', (e) => {
         const btn = e.target.closest('.icon-btn');
         if (!btn) return;
         const id = btn.dataset.id;
@@ -662,16 +668,16 @@ function setupEventListeners() {
     });
 
     // --- Beneficiaries Management ---
-    els.manageBeneficiariesBtn.addEventListener('click', () => {
+    els.manageBeneficiariesBtn?.addEventListener('click', () => {
         renderBeneficiariesList(store.state.beneficiaries);
         els.beneficiariesListModal.classList.add('open');
     });
 
-    els.openAddBenModalBtn.addEventListener('click', () => {
+    els.openAddBenModalBtn?.addEventListener('click', () => {
         openBeneficiaryModal(); // Add mode
     });
 
-    els.benForm.addEventListener('submit', (e) => {
+    els.benForm?.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(els.benForm);
         const id = formData.get('id');
@@ -694,7 +700,7 @@ function setupEventListeners() {
         // If opened from list, re-render list happens via store subscription
     });
 
-    els.beneficiariesTableBody.addEventListener('click', (e) => {
+    els.beneficiariesTableBody?.addEventListener('click', (e) => {
         // Handle Edit by clicking Name
         const nameLink = e.target.closest('.receiver-link-action');
         if (nameLink) {
@@ -718,11 +724,70 @@ function setupEventListeners() {
     });
 
     // --- Report Download ---
-    els.downloadReportPdfBtn.addEventListener('click', () => {
-        window.print();
+    els.downloadReportPdfBtn?.addEventListener('click', async () => {
+        if (!window.html2pdf) {
+            alert('PDF Library is still loading. Please try again in a few seconds.');
+            return;
+        }
+        
+        const originalText = els.downloadReportPdfBtn.innerHTML;
+        els.downloadReportPdfBtn.innerHTML = 'Structuring PDF...';
+        els.downloadReportPdfBtn.disabled = true;
+
+        const element = document.getElementById('printableReportArea');
+        const monthYear = document.getElementById('repMonth').textContent.replace(' ', '_');
+        
+        // 1. Temporarily remove constraints for seamless full-page capture
+        const originalStyles = {
+            overflow: element.style.overflow,
+            height: element.style.height,
+            maxHeight: element.style.maxHeight
+        };
+        
+        element.style.overflow = 'visible';
+        element.style.height = 'auto';
+        element.style.maxHeight = 'none';
+        
+        // Wait a tick for styles to apply
+        await new Promise(r => setTimeout(r, 100));
+
+        // Exact pixel dimensions of what the user sees
+        const pxWidth = element.scrollWidth;
+        const pxHeight = element.scrollHeight + 50; // extra padding at bottom
+
+        const opt = {
+            margin:       0, // No margins, just literal pixel mapping
+            filename:     `Zikrullah_TV_Report_${monthYear}.pdf`,
+            image:        { type: 'jpeg', quality: 1 },
+            html2canvas:  { 
+                scale: 2, 
+                useCORS: true, 
+                logging: false,
+                scrollY: 0, // IMPORTANT: force scroll to 0 to prevent top space offset bug in PDF
+                windowY: 0,
+                backgroundColor: '#ffffff'
+            },
+            // Create a single enormous PDF page so NOTHING gets cut into pieces
+            jsPDF:        { unit: 'px', format: [pxWidth, pxHeight], orientation: 'portrait' }
+        };
+
+        try {
+            await window.html2pdf().set(opt).from(element).save();
+        } catch (err) {
+            console.error('PDF Generation Error:', err);
+            alert('Failed to generate PDF. Check console for details.');
+        } finally {
+            // Restore everything
+            element.style.overflow = originalStyles.overflow;
+            element.style.height = originalStyles.height;
+            element.style.maxHeight = originalStyles.maxHeight;
+            
+            els.downloadReportPdfBtn.innerHTML = originalText;
+            els.downloadReportPdfBtn.disabled = false;
+        }
     });
 
-    els.openReportModalBtn.addEventListener('click', () => {
+    els.openReportModalBtn?.addEventListener('click', () => {
         generateMonthlyReport();
         els.reportModal.classList.add('open');
     });
@@ -734,7 +799,7 @@ function setupEventListeners() {
     setupSmartCalc(els.outUSD, els.outBDT, els.outRate);
 
     // Incoming Form Submit
-    els.incomingForm.addEventListener('submit', async (e) => {
+    els.incomingForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
             const id = els.incId.value;
@@ -746,6 +811,7 @@ function setupEventListeners() {
 
             const txData = {
                 date: els.incDate.value,
+                accountingMonth: els.incAccMonth.value,
                 type: 'incoming',
                 subType: els.incType.value,
                 source: els.incSource.value,
@@ -775,12 +841,13 @@ function setupEventListeners() {
     });
 
     // Outgoing Form Submit
-    els.outgoingForm.addEventListener('submit', async (e) => {
+    els.outgoingForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
             const id = els.outId.value;
             const txData = {
                 date: els.outDate.value,
+                accountingMonth: els.outAccMonth.value,
                 type: 'outgoing',
                 beneficiaryId: els.outBeneficiary.value,
                 rate: parseFloat(els.outRate.value) || 0,
@@ -825,6 +892,7 @@ function setupEventListeners() {
             els.incomingModal.classList.add('open');
             els.incId.value = tx.id; // SET ID
             els.incDate.value = tx.date;
+            els.incAccMonth.value = tx.accountingMonth || tx.date.slice(0, 7);
             els.incType.value = tx.subType;
             els.incSource.value = tx.source;
             els.incRate.value = tx.rate;
@@ -835,6 +903,7 @@ function setupEventListeners() {
             els.outgoingModal.classList.add('open');
             els.outId.value = tx.id; // SET ID
             els.outDate.value = tx.date;
+            els.outAccMonth.value = tx.accountingMonth || tx.date.slice(0, 7);
             els.outBeneficiary.value = tx.beneficiaryId;
             els.outBeneficiary.dispatchEvent(new Event('change')); // Trigger bank preview
             els.outRate.value = tx.rate;
@@ -845,7 +914,7 @@ function setupEventListeners() {
     }
 
     // Source Auto-Fill Rate
-    els.incSource.addEventListener('change', () => {
+    els.incSource?.addEventListener('change', () => {
         const source = els.incSource.value;
         if (!source) return;
         const lastTx = store.state.transactions.find(t => t.source === source && t.rate);
@@ -856,7 +925,7 @@ function setupEventListeners() {
     });
 
     // Beneficiary Selection
-    els.outBeneficiary.addEventListener('change', () => {
+    els.outBeneficiary?.addEventListener('change', () => {
         const benId = els.outBeneficiary.value;
         const ben = store.state.beneficiaries.find(b => b.id === benId);
 
@@ -911,7 +980,7 @@ function setupEventListeners() {
     });
 
     // --- Table Actions ---
-    els.incTableBody.addEventListener('click', async (e) => {
+    els.incTableBody?.addEventListener('click', async (e) => {
         // 1. Copy Amount
         if (e.target.closest('.copy-amount-btn')) {
             const btn = e.target.closest('.copy-amount-btn');
@@ -929,7 +998,7 @@ function setupEventListeners() {
         }
     });
 
-    els.outTableBody.addEventListener('click', async (e) => {
+    els.outTableBody?.addEventListener('click', async (e) => {
         // 1. Copy Amount
         if (e.target.closest('.copy-amount-btn')) {
             const btn = e.target.closest('.copy-amount-btn');
@@ -980,12 +1049,12 @@ function setupEventListeners() {
 
     // Search (Debounced)
     const debouncedRender = debounce(() => renderTables(store.state.transactions, store.state.beneficiaries, store.state.selectedMonth, store.state.sortConfig), 300);
-    els.incSearch.addEventListener('input', debouncedRender);
-    els.outSearch.addEventListener('input', debouncedRender);
+    els.incSearch?.addEventListener('input', debouncedRender);
+    els.outSearch?.addEventListener('input', debouncedRender);
 
     // Export
-    els.exportIncBtn.addEventListener('click', () => exportCSV('incoming'));
-    els.exportOutBtn.addEventListener('click', () => exportCSV('outgoing'));
+    els.exportIncBtn?.addEventListener('click', () => exportCSV('incoming'));
+    els.exportOutBtn?.addEventListener('click', () => exportCSV('outgoing'));
 }
 
 function setupSmartCalc(usdInput, bdtInput, rateInput) {
@@ -1284,7 +1353,7 @@ function renderBeneficiariesList(beneficiaries) {
 // --- Restored/Reconstructed Functions ---
 
 function calculatePaymentSummary(transactions, beneficiaries, selectedMonth) {
-    const monthlyTxs = transactions.filter(t => t.date.startsWith(selectedMonth) && t.type === 'outgoing');
+    const monthlyTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.type === 'outgoing');
 
     let pendingCount = 0;
     let pendingAmount = 0;
@@ -1310,6 +1379,7 @@ function cloneTransaction(id) {
 
     if (tx.type === 'incoming') {
         els.incDate.value = new Date().toISOString().split('T')[0];
+        els.incAccMonth.value = tx.accountingMonth || store.state.selectedMonth;
         els.incType.value = tx.subType;
         els.incSource.value = tx.source;
         els.incRate.value = tx.rate;
@@ -1319,6 +1389,7 @@ function cloneTransaction(id) {
         els.incomingModal.classList.add('open');
     } else {
         els.outDate.value = new Date().toISOString().split('T')[0];
+        els.outAccMonth.value = tx.accountingMonth || store.state.selectedMonth;
         els.outBeneficiary.value = tx.beneficiaryId;
         els.outRate.value = tx.rate;
         els.outUSD.value = tx.amountUSD;
@@ -1330,8 +1401,8 @@ function cloneTransaction(id) {
 }
 
 function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
-    // 1. Month Filter
-    const monthlyTxs = transactions.filter(t => t.date.startsWith(selectedMonth));
+    // 1. Month Filter (Accounting Month takes priority)
+    const monthlyTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth);
 
     // 2. UI: Update Header Sort Indicators
     const headers = document.querySelectorAll('th.sortable');
@@ -1365,7 +1436,6 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
             valA = (a[field] || '').toString().toLowerCase();
             valB = (b[field] || '').toString().toLowerCase();
         }
-
         if (valA < valB) return -1 * dir;
         if (valA > valB) return 1 * dir;
         return 0;
@@ -1382,10 +1452,40 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
         );
     }
 
+    // Calculate Totals for Incoming
+    let totalIncUSD = 0;
+    let totalIncBDT = 0;
+    incTxs.forEach(t => {
+        const u = parseFloat(t.amountUSD || 0);
+        const b = parseFloat(t.amountBDT || 0);
+        if (t.subType === 'return') {
+            totalIncUSD -= u;
+            totalIncBDT -= b;
+        } else {
+            totalIncUSD += u;
+            totalIncBDT += b;
+        }
+    });
+
     els.incTableBody.innerHTML = '';
     if (incTxs.length === 0) {
-        els.incTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">${incSearchQuery ? 'No matching results' : 'No transactions found for this month.'}</td></tr>`;
+        els.incTableBody.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-muted">${incSearchQuery ? 'No matching results' : 'No transactions found for this month.'}</td></tr>`;
     } else {
+        // PREPEND TOTAL ROW (PREMIUM HIGHLIGHTED)
+        const totalRow = document.createElement('tr');
+        totalRow.style.background = 'linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%)';
+        totalRow.style.fontWeight = '900';
+        totalRow.style.boxShadow = 'inset 0 -2px 0 #16a34a';
+        totalRow.innerHTML = `
+            <td colspan="3" class="text-center" style="color: #166534; letter-spacing: 0.15em; font-size: 0.85rem; text-transform: uppercase;">
+                <span style="background: #16a34a; color: white; padding: 2px 10px; border-radius: 4px; font-weight: 800;">MONTHLY TOTAL SUMMARY</span>
+            </td>
+            <td class="amount-column" style="color: #15803d; font-size: 1.25rem;">${fmtUSD(totalIncUSD)}</td>
+            <td class="amount-column" style="color: #15803d; font-size: 1.25rem;">${fmtBDT(totalIncBDT)}</td>
+            <td colspan="3"></td>
+        `;
+        els.incTableBody.appendChild(totalRow);
+
         incTxs.forEach(tx => {
             const tr = document.createElement('tr');
             tr.className = `status-${tx.status || 'received'} type-${tx.subType}`;
@@ -1433,10 +1533,32 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
         });
     }
 
+    // Calculate Totals for Outgoing
+    let totalOutUSD = 0;
+    let totalOutBDT = 0;
+    outTxs.forEach(t => {
+        totalOutUSD += parseFloat(t.amountUSD || 0);
+        totalOutBDT += parseFloat(t.amountBDT || 0);
+    });
+
     els.outTableBody.innerHTML = '';
     if (outTxs.length === 0) {
-        els.outTableBody.innerHTML = `<tr><td colspan="6" class="text-center p-4 text-muted">${outSearchQuery ? 'No matching results' : 'No outgoing transactions found.'}</td></tr>`;
+        els.outTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">${outSearchQuery ? 'No matching results' : 'No outgoing transactions found.'}</td></tr>`;
     } else {
+        // PREPEND TOTAL ROW (PREMIUM HIGHLIGHTED)
+        const totalRow = document.createElement('tr');
+        totalRow.style.background = 'linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%)';
+        totalRow.style.fontWeight = '900';
+        totalRow.style.boxShadow = 'inset 0 -2px 0 #dc2626';
+        totalRow.innerHTML = `
+            <td colspan="2" class="text-center" style="color: #991b1b; letter-spacing: 0.15em; font-size: 0.85rem; text-transform: uppercase;">
+                <span style="background: #dc2626; color: white; padding: 2px 10px; border-radius: 4px; font-weight: 800;">MONTHLY TOTAL SUMMARY</span>
+            </td>
+            <td class="amount-column" style="color: #b91c1c; font-size: 1.25rem;">${fmtUSD(totalOutUSD)}</td>
+            <td class="amount-column" style="color: #b91c1c; font-size: 1.25rem;">${fmtBDT(totalOutBDT)}</td>
+            <td colspan="3"></td>
+        `;
+        els.outTableBody.appendChild(totalRow);
         outTxs.forEach(tx => {
             const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
             const benName = ben ? ben.nickname || ben.name : 'Unknown';
@@ -1493,21 +1615,25 @@ function generateMonthlyReport() {
     els.repMonth.textContent = monthName;
     els.repGenDate.textContent = new Date().toLocaleDateString('en-US', { dateStyle: 'medium' });
 
+    // Define formatters without cents for the Executive Summary
+    const fmtBDTNoCents = (n) => `৳${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(n || 0))}`;
+    const fmtUSDNoCents = (n) => `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(n || 0))}`;
+
     // 2. Summary Financials
-    els.repOpening.textContent = fmtBDT(liquidity.openingBDT);
-    els.repOpeningUSD.textContent = fmtUSD(liquidity.openingUSD);
+    els.repOpening.textContent = fmtBDTNoCents(liquidity.openingBDT);
+    els.repOpeningUSD.textContent = fmtUSDNoCents(liquidity.openingUSD);
 
-    els.repTotalIn.textContent = fmtBDT(liquidity.monthReceiptsBDT);
-    els.repTotalInUSD.textContent = fmtUSD(liquidity.monthReceiptsUSD);
+    els.repTotalIn.textContent = fmtBDTNoCents(liquidity.monthReceiptsBDT);
+    els.repTotalInUSD.textContent = fmtUSDNoCents(liquidity.monthReceiptsUSD);
 
-    els.repTotalOut.textContent = fmtBDT(liquidity.monthDisbursedBDT);
-    els.repTotalOutUSD.textContent = fmtUSD(liquidity.monthDisbursedUSD);
+    els.repTotalOut.textContent = fmtBDTNoCents(liquidity.monthDisbursedBDT);
+    els.repTotalOutUSD.textContent = fmtUSDNoCents(liquidity.monthDisbursedUSD);
 
-    els.repClosing.textContent = fmtBDT(liquidity.closingBDT);
-    els.repClosingUSD.textContent = fmtUSD(liquidity.closingUSD);
+    els.repClosing.textContent = fmtBDTNoCents(liquidity.closingBDT);
+    els.repClosingUSD.textContent = fmtUSDNoCents(liquidity.closingUSD);
 
     // Calculate Monthly Liabilities (Pending & Hold)
-    const monthlyOutTxs = transactions.filter(t => t.date.startsWith(selectedMonth) && t.type === 'outgoing');
+    const monthlyOutTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.type === 'outgoing');
     let monthlyLiabilitiesBDT = 0;
     let monthlyLiabilitiesUSD = 0;
     monthlyOutTxs.forEach(t => {
@@ -1523,8 +1649,8 @@ function generateMonthlyReport() {
     // Projected performance for the month
     const projectedNetFlowBDT = netFlowBDT - monthlyLiabilitiesBDT;
 
-    els.repNetFlow.textContent = fmtBDT(netFlowBDT);
-    els.repNetFlowUSD.textContent = fmtUSD(netFlowUSD);
+    els.repNetFlow.textContent = fmtBDTNoCents(liquidity.closingBDT);
+    els.repNetFlowUSD.textContent = fmtUSDNoCents(liquidity.closingUSD);
 
     // 3. Status Badge logic (Factoring in Hold/Pending as liabilities)
     const isSurplus = projectedNetFlowBDT >= 0;
@@ -1539,37 +1665,23 @@ function generateMonthlyReport() {
         els.repClosingCard.classList.add(isSurplus ? 'success' : 'danger');
     }
 
-    // 4. Strategic Insights Generation
-    let insightHTML = '';
-    if (isSurplus) {
-        insightHTML = `Zikrullah TV LLC maintained a healthy operational surplus (including projected liabilities) of <strong>${fmtBDT(projectedNetFlowBDT)}</strong> this month. `;
-    } else {
-        insightHTML = `The business experienced an operational shortage of <strong>${fmtBDT(Math.abs(projectedNetFlowBDT))}</strong>. This factors in all <strong>Paid, Pending, and Held</strong> disbursements for the period. `;
-    }
-
-    // Identify Top Revenue Source
-    const incTxs = transactions.filter(t => t.type === 'incoming' && t.date.startsWith(selectedMonth));
+    // 4. Data Preparation for Tables
+    const incTxs = transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status !== 'hold');
     const sourceGroups = {};
     incTxs.forEach(t => {
         if (!sourceGroups[t.source]) sourceGroups[t.source] = { bdt: 0, usd: 0 };
         const b = parseFloat(t.amountBDT || 0);
         const u = parseFloat(t.amountUSD || 0);
-        if (t.subType === 'receive') {
-            sourceGroups[t.source].bdt += b;
-            sourceGroups[t.source].usd += u;
-        } else {
+        if (t.subType === 'return') {
             sourceGroups[t.source].bdt -= b;
             sourceGroups[t.source].usd -= u;
+        } else {
+            sourceGroups[t.source].bdt += b;
+            sourceGroups[t.source].usd += u;
         }
     });
 
-    const topSource = Object.entries(sourceGroups).sort((a, b) => b[1].bdt - a[1].bdt)[0];
-    if (topSource && topSource[1].bdt > 0) {
-        insightHTML += `The primary revenue driver for ${monthName} was <strong>${topSource[0]}</strong>. `;
-    }
-
-    // Identify Major Outflow (Paid + Hold + Pending)
-    const outTxs = transactions.filter(t => t.type === 'outgoing' && t.date.startsWith(selectedMonth));
+    const outTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status === 'paid');
     const benGroups = {};
     outTxs.forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
@@ -1579,30 +1691,28 @@ function generateMonthlyReport() {
         benGroups[name].usd += parseFloat(t.amountUSD || 0);
     });
 
-    const topOut = Object.entries(benGroups).sort((a, b) => b[1].bdt - a[1].bdt)[0];
-    if (topOut && topOut[1].bdt > 0) {
-        insightHTML += `Operational spending was primarily concentrated towards <strong>${topOut[0]}</strong>. `;
-    }
-
-    const repInsightsEl = document.getElementById('repInsights');
-    if (repInsightsEl) repInsightsEl.innerHTML = insightHTML;
-
-    // 5. Populate Tables
-    els.repInBody.innerHTML = Object.entries(sourceGroups).map(([name, data]) => `
-        <tr>
-            <td>${name}</td>
-            <td class="text-right">${fmtUSD(data.usd)}</td>
-            <td class="text-right">${fmtBDT(data.bdt)}</td>
+    // 5. Populate Tables (Sorted Alphabetically)
+    const sortedSources = Object.entries(sourceGroups).sort((a, b) => a[0].localeCompare(b[0]));
+    els.repInBody.innerHTML = sortedSources.map(([name, data]) => `
+        <tr style="border-bottom: 1px solid var(--border-color); transition: all 0.2s;">
+            <td style="font-weight: 500; font-size: 0.95rem; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
+                <span style="display:inline-block; vertical-align:middle; width:8px; height:8px; border-radius:50%; background:var(--success-color); margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
+            </td>
+            <td class="text-right" style="color: var(--success-dark); font-weight: 500;">${fmtUSD(data.usd)}</td>
+            <td class="text-right" style="font-weight: 600; color: #111;">${fmtBDT(data.bdt)}</td>
         </tr>
     `).join('');
     els.repInTotal.textContent = fmtBDT(liquidity.monthReceiptsBDT);
     els.repInTotalUSD.textContent = fmtUSD(liquidity.monthReceiptsUSD);
 
-    els.repOutBody.innerHTML = Object.entries(benGroups).map(([name, data]) => `
-        <tr>
-            <td>${name}</td>
-            <td class="text-right">${fmtUSD(data.usd)}</td>
-            <td class="text-right">${fmtBDT(data.bdt)}</td>
+    const sortedBens = Object.entries(benGroups).sort((a, b) => a[0].localeCompare(b[0]));
+    els.repOutBody.innerHTML = sortedBens.map(([name, data]) => `
+        <tr style="border-bottom: 1px solid var(--border-color); transition: all 0.2s;">
+            <td style="font-weight: 500; font-size: 0.95rem; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
+                <span style="display:inline-block; vertical-align:middle; width:8px; height:8px; border-radius:50%; background:var(--danger-color); margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
+            </td>
+            <td class="text-right" style="color: var(--danger-color); font-weight: 500;">${fmtUSD(data.usd)}</td>
+            <td class="text-right" style="font-weight: 600; color: #111;">${fmtBDT(data.bdt)}</td>
         </tr>
     `).join('');
     els.repOutTotal.textContent = fmtBDT(liquidity.monthDisbursedBDT);
@@ -1614,44 +1724,70 @@ function exportCEOReportCSV() {
     const [y, m] = selectedMonth.split('-');
     const monthName = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
 
-    let csv = `Zikrullah TV LLC - EXECUTIVE FINANCIAL OPERATIONS REPORT\n`;
-    csv += `Report Period: ${monthName}\n`;
-    csv += `Generated On: ${new Date().toLocaleDateString()}\n\n`;
-
-    // 1. Executive Summary
-    csv += `EXECUTIVE SUMMARY\n`;
-    csv += `Opening Balance (BDT),${liquidity.openingBDT}\n`;
-    csv += `Opening Balance (USD),${liquidity.openingUSD}\n`;
-    csv += `Total Money In (BDT),${liquidity.monthReceiptsBDT}\n`;
-    csv += `Total Money Out (BDT),${liquidity.monthDisbursedBDT}\n`;
-    csv += `Closing Balance (BDT),${liquidity.closingBDT}\n`;
-    csv += `Closing Balance (USD),${liquidity.closingUSD}\n\n`;
-
-    // 2. Money In Section
-    csv += `MONEY IN (PAYERS)\n`;
-    csv += `Date,Source,Type,USD,BDT,Rate\n`;
-    const inTxs = transactions.filter(t => t.type === 'incoming' && t.date.startsWith(selectedMonth));
-    inTxs.forEach(t => {
-        csv += `${t.date},"${t.source}",${t.subType},${t.amountUSD},${t.amountBDT},${t.rate}\n`;
+    // 1. Data Preparation (Grouping & Sorting)
+    const sourceGroups = {};
+    const incTxs = transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status !== 'hold');
+    incTxs.forEach(t => {
+        if (!sourceGroups[t.source]) sourceGroups[t.source] = { bdt: 0, usd: 0 };
+        const b = parseFloat(t.amountBDT || 0);
+        const u = parseFloat(t.amountUSD || 0);
+        if (t.subType === 'return') {
+            sourceGroups[t.source].bdt -= b;
+            sourceGroups[t.source].usd -= u;
+        } else {
+            sourceGroups[t.source].bdt += b;
+            sourceGroups[t.source].usd += u;
+        }
     });
-    csv += `,,TOTAL,${liquidity.monthReceiptsUSD},${liquidity.monthReceiptsBDT},\n\n`;
 
-    // 3. Money Out Section
-    csv += `MONEY OUT (RECEIVERS)\n`;
-    csv += `Date,Receiver,USD,BDT,Rate,Status\n`;
-    const outTxs = transactions.filter(t => t.type === 'outgoing' && t.date.startsWith(selectedMonth));
+    const benGroups = {};
+    const outTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status === 'paid');
     outTxs.forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
         const name = ben ? ben.nickname || ben.name : 'Unknown';
-        csv += `${t.date},"${name}",${t.amountUSD},${t.amountBDT},${t.rate},${t.status}\n`;
+        if (!benGroups[name]) benGroups[name] = { bdt: 0, usd: 0 };
+        benGroups[name].bdt += parseFloat(t.amountBDT || 0);
+        benGroups[name].usd += parseFloat(t.amountUSD || 0);
     });
-    csv += `,,TOTAL,${liquidity.monthDisbursedUSD},${liquidity.monthDisbursedBDT},\n`;
+
+    const sortedSources = Object.entries(sourceGroups).sort((a, b) => a[0].localeCompare(b[0]));
+    const sortedBens = Object.entries(benGroups).sort((a, b) => a[0].localeCompare(b[0]));
+
+    // 2. CSV Construction
+    let csv = `Zikrullah TV LLC - EXECUTIVE FINANCIAL OPERATIONS REPORT\n`;
+    csv += `Report Period,${monthName}\n`;
+    csv += `Generated On,${new Date().toLocaleDateString()}\n\n`;
+
+    // 3. Executive Summary
+    csv += `EXECUTIVE SUMMARY\n`;
+    csv += `Category,USD Amount,BDT Amount (৳)\n`;
+    csv += `Opening Balance,${liquidity.openingUSD.toFixed(2)},${liquidity.openingBDT.toFixed(2)}\n`;
+    csv += `Total Money In,${liquidity.monthReceiptsUSD.toFixed(2)},${liquidity.monthReceiptsBDT.toFixed(2)}\n`;
+    csv += `Total Money Out,${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n`;
+    csv += `Closing Balance,${liquidity.closingUSD.toFixed(2)},${liquidity.closingBDT.toFixed(2)}\n`;
+    csv += `Total Liquidity Position,${liquidity.closingUSD.toFixed(2)},${liquidity.closingBDT.toFixed(2)}\n\n`;
+
+    // 4. Money In Summary
+    csv += `MONEY IN (BY PAYER) - ALPHABETICAL\n`;
+    csv += `Payer Name,USD Amount,BDT Total (৳)\n`;
+    sortedSources.forEach(([name, data]) => {
+        csv += `"${name}",${data.usd.toFixed(2)},${data.bdt.toFixed(2)}\n`;
+    });
+    csv += `TOTAL IN,${liquidity.monthReceiptsUSD.toFixed(2)},${liquidity.monthReceiptsBDT.toFixed(2)}\n\n`;
+
+    // 5. Money Out Summary
+    csv += `MONEY OUT (BY RECEIVER) - ALPHABETICAL\n`;
+    csv += `Receiver Name,USD Amount,BDT Total (৳)\n`;
+    sortedBens.forEach(([name, data]) => {
+        csv += `"${name}",${data.usd.toFixed(2)},${data.bdt.toFixed(2)}\n`;
+    });
+    csv += `TOTAL OUT,${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n`;
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `CEO_Report_${selectedMonth}.csv`);
+    link.setAttribute("download", `Zikrullah_TV_CEO_Report_${selectedMonth}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1659,7 +1795,7 @@ function exportCEOReportCSV() {
 
 function exportCSV(type) {
     const { transactions, selectedMonth } = store.state;
-    const txs = transactions.filter(t => t.type === type && t.date.startsWith(selectedMonth));
+    const txs = transactions.filter(t => t.type === type && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth);
 
     if (txs.length === 0) {
         showToast('No data to export', 'error');

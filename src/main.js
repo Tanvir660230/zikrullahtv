@@ -50,8 +50,8 @@ const els = {
 };
 
 // --- Formatters ---
-const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
-const fmtBDT = (n) => new Intl.NumberFormat('en-BD', { style: 'currency', currency: 'BDT' }).format(n);
+const fmtUSD = (n) => `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)}`;
+const fmtBDT = (n) => `৳${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)}`;
 
 // --- Initialization ---
 function init() {

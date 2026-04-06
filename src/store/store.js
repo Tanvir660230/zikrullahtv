@@ -122,8 +122,8 @@ class Store {
         let monthDisbursedBDT = 0;
 
         this.state.transactions.forEach(tx => {
-            const txDate = tx.date; // YYYY-MM-DD
-            const txMonth = txDate.slice(0, 7); // YYYY-MM
+            // Priority: Explicit Accounting Month -> Derived from Transaction Date
+            const txMonth = tx.accountingMonth || tx.date.slice(0, 7);
 
             // Robust parsing
             const amountUSD = Number(tx.amountUSD) || 0;

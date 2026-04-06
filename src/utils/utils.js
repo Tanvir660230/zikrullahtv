@@ -1,7 +1,7 @@
 
 // Currency Formatters
-export const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
-export const fmtBDT = (n) => new Intl.NumberFormat('en-BD', { style: 'currency', currency: 'BDT' }).format(n);
+export const fmtUSD = (n) => `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)}`;
+export const fmtBDT = (n) => `৳${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n || 0)}`;
 
 // Debounce Utility for Search Performance
 export function debounce(func, wait) {
