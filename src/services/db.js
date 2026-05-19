@@ -54,8 +54,7 @@ class GlobalDatabase {
     async addDocument(collectionName, data) {
         await this.initPromise;
         if (!navigator.onLine) {
-            alert('Cannot save: You are currently Offline. Please check your internet connection.');
-            throw new Error('Action blocked: Offline');
+            throw new Error('You are offline. Please check your internet connection.');
         }
         if (!this.provider) throw new Error('Database not connected');
         if (!data.createdAt) data.createdAt = new Date().toISOString();

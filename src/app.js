@@ -1,4 +1,4 @@
-import { store } from './store/store.js?v=26';
+import { store } from './store/store.js?v=34';
 import { fmtUSD, fmtBDT, showToast, debounce } from './utils/utils.js';
 
 // Elements Map
@@ -248,7 +248,7 @@ async function initApp() {
         console.log('App: UI Initialization complete.');
     } catch (error) {
         console.error('App init failed:', error);
-        alert('Critical error during app initialization. Please check the console.\nDetail: ' + error.message);
+        console.error('Critical init error:', error.message);
     }
 }
 
@@ -305,7 +305,7 @@ async function updateConnectionStatus() {
 }
 
 function checkLoginStatus() {
-    const isAuth = sessionStorage.getItem('isAuth') === 'true';
+    const isAuth = localStorage.getItem('isAuth') === 'true';
     if (isAuth) {
         els.loginModal.classList.remove('open');
         els.loginModal.style.display = 'none';
@@ -415,7 +415,7 @@ function setupEventListeners() {
         e.preventDefault();
         const pwd = els.loginPassword.value;
         if (pwd === 'admin123#') {
-            sessionStorage.setItem('isAuth', 'true');
+            localStorage.setItem('isAuth', 'true');
             checkLoginStatus();
             showToast('Access Granted', 'success');
         } else {
@@ -426,7 +426,7 @@ function setupEventListeners() {
 
     els.logoutBtn?.addEventListener('click', () => {
         if (confirm('Are you sure you want to log out?')) {
-            sessionStorage.removeItem('isAuth');
+            localStorage.removeItem('isAuth');
             window.location.reload();
         }
     });
@@ -490,6 +490,9 @@ function setupEventListeners() {
     // --- Modals ---
     // Incoming
     els.openIncModalBtn?.addEventListener('click', () => {
+        // Always reset to Add mode — clear any lingering edit ID
+        els.incomingForm.reset();
+        els.incId.value = '';
         els.incomingModal.classList.add('open');
         // Auto-fill Rate with the latest used incoming rate (Prioritize LocalStorage)
         const savedRate = localStorage.getItem('lastIncRate');
@@ -501,8 +504,9 @@ function setupEventListeners() {
                 els.incRate.value = lastTx.rate;
             }
         }
-        // Default Accounting Month to current selection
+        // Default Accounting Month and Date
         els.incAccMonth.value = store.state.selectedMonth;
+        els.incDate.value = new Date().toISOString().split('T')[0];
     });
     els.closeIncModal?.addEventListener('click', () => els.incomingModal.classList.remove('open'));
     els.incomingModal?.addEventListener('click', (e) => {
@@ -511,8 +515,19 @@ function setupEventListeners() {
 
     // Outgoing
     els.openOutModalBtn?.addEventListener('click', () => {
+        // Always reset to Add mode — clear any lingering edit ID
+        els.outgoingForm.reset();
+        els.outId.value = '';
         els.outgoingModal.classList.add('open');
-        // Auto-fill Rate with Average Buy Rate for perfect maintenance
+        // Clear bank preview from any previous use
+        els.bankPreview.style.display = 'none';
+        els.prevDisplayName.textContent = '';
+        els.prevBankName.textContent = '';
+        els.prevAccNo.textContent = '';
+        // Default Date and Month
+        els.outDate.value = new Date().toISOString().split('T')[0];
+        els.outAccMonth.value = store.state.selectedMonth;
+        // Auto-fill Rate with Average Buy Rate
         const avgRate = store.state.liquidity.averageBuyRate || 0;
         if (avgRate > 0) {
             els.outRate.value = avgRate.toFixed(2);
@@ -534,6 +549,7 @@ function setupEventListeners() {
     // History listeners
     if (els.openHistoryModalBtn) {
         els.openHistoryModalBtn?.addEventListener('click', () => {
+            populateHistYears();
             renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value);
             els.historyModal.classList.add('open');
         });
@@ -541,6 +557,7 @@ function setupEventListeners() {
 
     if (els.sidebarHistoryBtn) {
         els.sidebarHistoryBtn?.addEventListener('click', () => {
+            populateHistYears();
             renderHistoryTable(store.state.transactions, store.state.beneficiaries, els.histSearch.value);
             els.historyModal.classList.add('open');
             els.mobileSidebar.classList.remove('open');
@@ -577,6 +594,14 @@ function setupEventListeners() {
             downloadBankStatement(store.state.transactions, store.state.beneficiaries, els.histMonth.value, els.histYear.value);
         });
     }
+
+    // Delegated edit listener for history table — set once to avoid memory leak
+    els.historyTableBody?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.edit-tx-btn-hist');
+        if (!btn) return;
+        els.historyModal.classList.remove('open');
+        editTransaction(btn.dataset.id);
+    });
 
     // Settings
     els.settingsBtn?.addEventListener('click', () => {
@@ -617,22 +642,32 @@ function setupEventListeners() {
     });
 
     // Settings Save
-    els.settingsForm?.addEventListener('submit', (e) => {
+    els.settingsForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        store.saveSettings({
-            ...store.state.settings,
-            openingBalanceUSD: parseFloat(els.setOpeningUSD.value),
-            openingBalanceBDT: parseFloat(els.setOpeningBDT.value)
-        });
-        els.settingsModal.classList.remove('open');
+        try {
+            await store.saveSettings({
+                ...store.state.settings,
+                openingBalanceUSD: parseFloat(els.setOpeningUSD.value) || 0,
+                openingBalanceBDT: parseFloat(els.setOpeningBDT.value) || 0
+            });
+            showToast('Settings saved', 'success');
+            els.settingsModal.classList.remove('open');
+        } catch (err) {
+            showToast('Failed to save settings: ' + err.message, 'error');
+        }
     });
 
     // Clear Data
     if (els.clearDataBtn) {
-        els.clearDataBtn?.addEventListener('click', () => {
+        els.clearDataBtn?.addEventListener('click', async () => {
             if (confirm('⚠ Are you sure you want to DELETE ALL TRANSACTIONS?\n\nThis action cannot be undone.')) {
-                store.clearAllData();
-                els.settingsModal.classList.remove('open');
+                try {
+                    await store.clearAllData();
+                    showToast('All data cleared', 'success');
+                    els.settingsModal.classList.remove('open');
+                } catch (err) {
+                    showToast('Failed to clear data: ' + err.message, 'error');
+                }
             }
         });
     }
@@ -643,26 +678,40 @@ function setupEventListeners() {
         els.sourcesModal.classList.add('open');
     });
 
-    els.addSourceForm?.addEventListener('submit', (e) => {
+    els.addSourceForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(els.addSourceForm);
-        store.addSource({ name: formData.get('name') });
-        els.addSourceForm.reset();
+        try {
+            await store.addSource({ name: formData.get('name') });
+            els.addSourceForm.reset();
+        } catch (err) {
+            showToast('Failed to add payer: ' + err.message, 'error');
+        }
     });
 
-    els.sourcesList?.addEventListener('click', (e) => {
+    els.sourcesList?.addEventListener('click', async (e) => {
         const btn = e.target.closest('.icon-btn');
         if (!btn) return;
         const id = btn.dataset.id;
         if (!id) return;
 
         if (btn.classList.contains('delete-btn')) {
-            if (confirm('Delete this payer?')) store.deleteSource(id);
+            if (confirm('Delete this payer?')) {
+                try {
+                    await store.deleteSource(id);
+                } catch (err) {
+                    showToast('Failed to delete: ' + err.message, 'error');
+                }
+            }
         } else if (btn.classList.contains('edit-btn')) {
             const currentName = store.state.sources.find(s => s.id === id)?.name;
             const newName = prompt('Enter new name:', currentName);
             if (newName && newName !== currentName) {
-                store.updateSource(id, { name: newName });
+                try {
+                    await store.updateSource(id, { name: newName });
+                } catch (err) {
+                    showToast('Failed to update: ' + err.message, 'error');
+                }
             }
         }
     });
@@ -677,7 +726,7 @@ function setupEventListeners() {
         openBeneficiaryModal(); // Add mode
     });
 
-    els.benForm?.addEventListener('submit', (e) => {
+    els.benForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(els.benForm);
         const id = formData.get('id');
@@ -691,16 +740,19 @@ function setupEventListeners() {
             name: formData.get('nickname') // fallback
         };
 
-        if (id) {
-            store.updateBeneficiary(id, benData);
-        } else {
-            store.addBeneficiary(benData);
+        try {
+            if (id) {
+                await store.updateBeneficiary(id, benData);
+            } else {
+                await store.addBeneficiary(benData);
+            }
+            els.beneficiaryModal.classList.remove('open');
+        } catch (err) {
+            showToast('Failed to save receiver: ' + err.message, 'error');
         }
-        els.beneficiaryModal.classList.remove('open');
-        // If opened from list, re-render list happens via store subscription
     });
 
-    els.beneficiariesTableBody?.addEventListener('click', (e) => {
+    els.beneficiariesTableBody?.addEventListener('click', async (e) => {
         // Handle Edit by clicking Name
         const nameLink = e.target.closest('.receiver-link-action');
         if (nameLink) {
@@ -719,14 +771,20 @@ function setupEventListeners() {
             openBeneficiaryModal(ben);
         } else if (deleteBtn) {
             const id = deleteBtn.dataset.id;
-            if (confirm('Delete this receiver?')) store.deleteBeneficiary(id);
+            if (confirm('Delete this receiver?')) {
+                try {
+                    await store.deleteBeneficiary(id);
+                } catch (err) {
+                    showToast('Failed to delete receiver: ' + err.message, 'error');
+                }
+            }
         }
     });
 
     // --- Report Download ---
     els.downloadReportPdfBtn?.addEventListener('click', async () => {
         if (!window.html2pdf) {
-            alert('PDF Library is still loading. Please try again in a few seconds.');
+            showToast('PDF Library is still loading. Please try again in a moment.', 'error');
             return;
         }
         
@@ -775,7 +833,7 @@ function setupEventListeners() {
             await window.html2pdf().set(opt).from(element).save();
         } catch (err) {
             console.error('PDF Generation Error:', err);
-            alert('Failed to generate PDF. Check console for details.');
+            showToast('Failed to generate PDF. Check console for details.', 'error');
         } finally {
             // Restore everything
             element.style.overflow = originalStyles.overflow;
@@ -820,11 +878,14 @@ function setupEventListeners() {
                 amountBDT: parseFloat(els.incBDT.value) || 0,
             };
 
-            // INSTANT UI FEEDBACK (Close modal immediately)
-            els.incomingModal.classList.remove('open');
-            els.incomingForm.reset();
-            els.incId.value = ''; // Reset ID
-            els.incDate.value = new Date().toISOString().split('T')[0];
+            if (!txData.amountUSD && !txData.amountBDT) {
+                showToast('Please enter at least one amount (USD or BDT)', 'error');
+                return;
+            }
+            if (txData.amountUSD < 0 || txData.amountBDT < 0) {
+                showToast('Amounts must be positive. Use Return type for refunds.', 'error');
+                return;
+            }
 
             if (id) {
                 await store.updateTransaction(id, txData);
@@ -834,6 +895,12 @@ function setupEventListeners() {
                 await store.addTransaction(txData);
                 showToast('Money In Record Added', 'success');
             }
+
+            // Reset AFTER successful save so data isn't lost on DB failure
+            els.incomingModal.classList.remove('open');
+            els.incomingForm.reset();
+            els.incId.value = '';
+            els.incDate.value = new Date().toISOString().split('T')[0];
         } catch (error) {
             console.error('Error saving transaction:', error);
             showToast('Failed to save record: ' + error.message, 'error');
@@ -845,22 +912,26 @@ function setupEventListeners() {
         e.preventDefault();
         try {
             const id = els.outId.value;
+            const selectedBen = store.state.beneficiaries.find(b => b.id === els.outBeneficiary.value);
             const txData = {
                 date: els.outDate.value,
                 accountingMonth: els.outAccMonth.value,
                 type: 'outgoing',
                 beneficiaryId: els.outBeneficiary.value,
+                beneficiaryName: selectedBen ? (selectedBen.nickname || selectedBen.name || '') : '',
                 rate: parseFloat(els.outRate.value) || 0,
                 amountUSD: parseFloat(els.outUSD.value) || 0,
                 amountBDT: parseFloat(els.outBDT.value) || 0,
             };
 
-            // INSTANT UI FEEDBACK (Close modal immediately)
-            els.outgoingModal.classList.remove('open');
-            els.outgoingForm.reset();
-            els.outId.value = ''; // Reset ID
-            els.outDate.value = new Date().toISOString().split('T')[0];
-            els.bankPreview.style.display = 'none';
+            if (!txData.amountUSD && !txData.amountBDT) {
+                showToast('Please enter at least one amount (USD or BDT)', 'error');
+                return;
+            }
+            if (txData.amountUSD < 0 || txData.amountBDT < 0) {
+                showToast('Amounts must be positive.', 'error');
+                return;
+            }
 
             if (id) {
                 await store.updateTransaction(id, txData);
@@ -870,6 +941,16 @@ function setupEventListeners() {
                 await store.addTransaction(txData);
                 showToast('Money Out Record Added', 'success');
             }
+
+            // Reset AFTER successful save so data isn't lost on DB failure
+            els.outgoingModal.classList.remove('open');
+            els.outgoingForm.reset();
+            els.outId.value = '';
+            els.outDate.value = new Date().toISOString().split('T')[0];
+            els.bankPreview.style.display = 'none';
+            els.prevDisplayName.textContent = '';
+            els.prevBankName.textContent = '';
+            els.prevAccNo.textContent = '';
         } catch (error) {
             console.error('Error saving outgoing:', error);
             showToast('Failed to save record: ' + error.message, 'error');
@@ -879,7 +960,7 @@ function setupEventListeners() {
 
 
     function editTransaction(id) {
-        const tx = store.state.transactions.find(t => t.id == id);
+        const tx = store.state.transactions.find(t => t.id === id);
         if (!tx) return;
 
         // Prevent editing if Paid (Outgoing only per request, or both? User said "before paid mark", implies outgoing flow)
@@ -917,7 +998,7 @@ function setupEventListeners() {
     els.incSource?.addEventListener('change', () => {
         const source = els.incSource.value;
         if (!source) return;
-        const lastTx = store.state.transactions.find(t => t.source === source && t.rate);
+        const lastTx = [...store.state.transactions].reverse().find(t => t.source === source && t.rate);
         if (lastTx) {
             els.incRate.value = lastTx.rate;
             els.incRate.dispatchEvent(new Event('input'));
@@ -946,35 +1027,37 @@ function setupEventListeners() {
         );
 
         if (existingUnpaid) {
-            // MERGE MODE
-            els.outId.value = existingUnpaid.id;
-            els.outUSD.value = existingUnpaid.amountUSD;
-            els.outBDT.value = existingUnpaid.amountBDT;
-            els.outRate.value = existingUnpaid.rate;
-
-            // Trigger calculation for visual consistency
-            els.outRate.dispatchEvent(new Event('input'));
-
-            showToast(`Loaded Pending Tx ($${existingUnpaid.amountUSD}). Update total to merge.`, 'info');
+            const load = confirm(`Found a pending payment of $${existingUnpaid.amountUSD} / ৳${existingUnpaid.amountBDT} for this beneficiary.\n\nOK = Load and update it\nCancel = Create a new entry`);
+            if (load) {
+                // MERGE MODE
+                els.outId.value = existingUnpaid.id;
+                els.outUSD.value = existingUnpaid.amountUSD;
+                els.outBDT.value = existingUnpaid.amountBDT;
+                els.outRate.value = existingUnpaid.rate;
+                els.outRate.dispatchEvent(new Event('input'));
+                showToast(`Loaded Pending Tx ($${existingUnpaid.amountUSD}). Update total to merge.`, 'info');
+            } else {
+                // NEW ENTRY MODE (ignore existing pending)
+                els.outId.value = '';
+                els.outUSD.value = '';
+                els.outBDT.value = '';
+                const avgRate = store.state.liquidity.averageBuyRate || 0;
+                if (avgRate > 0) {
+                    els.outRate.value = avgRate.toFixed(2);
+                    els.outRate.dispatchEvent(new Event('input'));
+                }
+            }
         } else {
             // NEW ENTRY MODE
             els.outId.value = '';
             els.outUSD.value = '';
             els.outBDT.value = '';
 
-            // Auto-fill Rate for new entries
-            const lastIncomingTx = store.state.transactions.find(t => t.type === 'incoming' && t.rate > 0);
-
-            if (lastIncomingTx) {
-                els.outRate.value = lastIncomingTx.rate;
+            // Always use average buy rate for payouts — keeps USD/BDT in sync
+            const avgRate = store.state.liquidity.averageBuyRate || 0;
+            if (avgRate > 0) {
+                els.outRate.value = avgRate.toFixed(2);
                 els.outRate.dispatchEvent(new Event('input'));
-            } else if (benId) {
-                // Fallback: Last tx for this beneficiary
-                const lastTx = store.state.transactions.find(t => String(t.beneficiaryId) === String(benId) && t.rate);
-                if (lastTx) {
-                    els.outRate.value = lastTx.rate;
-                    els.outRate.dispatchEvent(new Event('input'));
-                }
             }
         }
     });
@@ -1006,10 +1089,21 @@ function setupEventListeners() {
             return;
         }
 
-        // 2. View Receiver
+        // 2a. Fix Unknown Name
+        if (e.target.closest('.fix-name-btn')) {
+            const btn = e.target.closest('.fix-name-btn');
+            const newName = prompt('Enter receiver name:', '');
+            if (newName && newName.trim()) {
+                await store.updateTransaction(btn.dataset.id, { beneficiaryName: newName.trim() });
+                showToast('Name updated', 'success');
+            }
+            return;
+        }
+
+        // 2b. View Receiver
         if (e.target.closest('.receiver-link')) {
             const id = e.target.closest('.receiver-link').dataset.id;
-            const ben = store.state.beneficiaries.find(b => b.id == id);
+            const ben = store.state.beneficiaries.find(b => b.id === id);
             if (ben) {
                 openBeneficiaryModal(ben);
             }
@@ -1057,6 +1151,21 @@ function setupEventListeners() {
     els.exportOutBtn?.addEventListener('click', () => exportCSV('outgoing'));
 }
 
+function populateHistYears() {
+    if (!els.histYear) return;
+    const txs = store.state.transactions;
+    const currentYear = new Date().getFullYear();
+    const years = new Set([currentYear]);
+    txs.forEach(t => {
+        const y = parseInt((t.accountingMonth || t.date || '').slice(0, 4));
+        if (y >= 2020 && y <= currentYear + 1) years.add(y);
+    });
+    const selectedYear = els.histYear.value || String(currentYear);
+    els.histYear.innerHTML = [...years].sort().map(y =>
+        `<option value="${y}"${String(y) === selectedYear ? ' selected' : ''}>${y}</option>`
+    ).join('');
+}
+
 function setupSmartCalc(usdInput, bdtInput, rateInput) {
     let lastEdited = 'usd'; // Track whether user prefers USD or BDT as source
 
@@ -1068,16 +1177,10 @@ function setupSmartCalc(usdInput, bdtInput, rateInput) {
         return isNaN(n) ? null : n;
     };
 
-    // Helper to set value avoiding "NaN" or "Infinity" and preventing "precision drift"
+    // Helper to set value avoiding "NaN" or "Infinity"
     const setVal = (input, val) => {
         if (!isFinite(val) || isNaN(val) || val === null) return;
-
-        const current = getVal(input);
-        // ONLY update if it's significantly different (> 0.01) to prevent rounding drift
-        // This stops 120.00 from being overwritten by 119.9999999 during calculations
-        if (current === null || Math.abs(current - val) > 0.011) {
-            input.value = val.toFixed(2);
-        }
+        input.value = val.toFixed(2);
     };
 
     const calculate = (source) => {
@@ -1138,7 +1241,25 @@ function setupSmartCalc(usdInput, bdtInput, rateInput) {
 
 
 
+const SPINNER = '<span class="val-spinner"></span>';
+
 function render(state) {
+    // Show loading spinner on all balance fields while Firebase is connecting
+    if (state.isLoading) {
+        els.liqUSD.innerHTML = SPINNER;
+        els.liqBDT.innerHTML = SPINNER;
+        if (els.avgBuyRate) els.avgBuyRate.innerHTML = SPINNER;
+        if (els.outLiqUSD) els.outLiqUSD.innerHTML = SPINNER;
+        if (els.outLiqBDT) els.outLiqBDT.innerHTML = SPINNER;
+        if (els.incLiqUSD) els.incLiqUSD.innerHTML = SPINNER;
+        if (els.incLiqBDT) els.incLiqBDT.innerHTML = SPINNER;
+        els.monthReceipts.innerHTML = SPINNER;
+        els.monthReceiptsBDT.innerHTML = SPINNER;
+        els.monthDisbursements.innerHTML = SPINNER;
+        els.monthDisbursementsBDT.innerHTML = SPINNER;
+        return;
+    }
+
     // Render Liquidity & Monthly Stats
     const {
         openingUSD, openingBDT,
@@ -1147,16 +1268,17 @@ function render(state) {
         closingUSD, closingBDT
     } = state.liquidity;
 
-    // Display Closing Balance (Carry    // Updates
-    els.liqUSD.textContent = fmtUSD(state.liquidity.closingUSD);
-    els.liqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
-    if (els.avgBuyRate) els.avgBuyRate.textContent = (state.liquidity.averageBuyRate || 0).toFixed(2);
-    if (els.hintRateVal) els.hintRateVal.textContent = (state.liquidity.averageBuyRate || 0).toFixed(2);
+    // Display Closing Balance
+    const avgRate = state.liquidity.averageBuyRate || 0;
+    els.liqUSD.textContent = fmtUSD(closingUSD);
+    els.liqBDT.textContent = fmtBDT(closingBDT);
+    if (els.avgBuyRate) els.avgBuyRate.textContent = avgRate.toFixed(2);
+    if (els.hintRateVal) els.hintRateVal.textContent = avgRate.toFixed(2);
 
     // Update Mini Stats in Tabs (Both Money In and Money Out)
-    if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(state.liquidity.closingUSD);
+    if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(closingUSD);
     if (els.outLiqBDT) els.outLiqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
-    if (els.incLiqUSD) els.incLiqUSD.textContent = fmtUSD(state.liquidity.closingUSD);
+    if (els.incLiqUSD) els.incLiqUSD.textContent = fmtUSD(closingUSD);
     if (els.incLiqBDT) els.incLiqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
 
     els.monthReceipts.textContent = fmtUSD(state.liquidity.monthReceiptsUSD);
@@ -1364,7 +1486,7 @@ function calculatePaymentSummary(transactions, beneficiaries, selectedMonth) {
         if (tx.status === 'paid') {
             paidCount++;
             paidAmount += (tx.amountBDT || 0);
-        } else if (tx.status === 'pending') {
+        } else if (tx.status === 'pending' || tx.status === 'hold') {
             pendingCount++;
             pendingAmount += (tx.amountBDT || 0);
         }
@@ -1427,8 +1549,8 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
         if (field === 'beneficiaryId') {
             const benA = beneficiaries.find(ben => ben.id === a.beneficiaryId);
             const benB = beneficiaries.find(ben => ben.id === b.beneficiaryId);
-            valA = (benA ? benA.nickname || benA.name : '').toLowerCase();
-            valB = (benB ? benB.nickname || benB.name : '').toLowerCase();
+            valA = (benA ? benA.nickname || benA.name : (a.beneficiaryName || '')).toLowerCase();
+            valB = (benB ? benB.nickname || benB.name : (b.beneficiaryName || '')).toLowerCase();
         } else if (field === 'amountUSD' || field === 'amountBDT' || field === 'rate') {
             valA = parseFloat(a[field] || 0);
             valB = parseFloat(b[field] || 0);
@@ -1445,10 +1567,10 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
     let incTxs = sortedTxs.filter(t => t.type === 'incoming');
     if (incSearchQuery) {
         incTxs = incTxs.filter(t =>
-            t.source.toLowerCase().includes(incSearchQuery) ||
-            t.amountBDT.toString().includes(incSearchQuery) ||
-            t.amountUSD.toString().includes(incSearchQuery) ||
-            t.date.includes(incSearchQuery)
+            (t.source?.toLowerCase() || '').includes(incSearchQuery) ||
+            (t.amountBDT?.toString() || '').includes(incSearchQuery) ||
+            (t.amountUSD?.toString() || '').includes(incSearchQuery) ||
+            (t.date || '').includes(incSearchQuery)
         );
     }
 
@@ -1502,7 +1624,7 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
                         </button>
                     </div>
                 </td>
-                <td data-label="Rate" class="text-right">${tx.rate}</td>
+                <td data-label="Rate" class="text-right">${(tx.rate || 0).toFixed(2)}</td>
                 <td data-label="Status"><span class="badge ${tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-green-light text-green'}">${tx.status || 'received'}</span></td>
                 <td class="actions-cell">
                    <button class="icon-btn edit-tx-btn" data-id="${tx.id}" title="Edit">
@@ -1525,10 +1647,10 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
             const benName = ben ? (ben.nickname || ben.name).toLowerCase() : 'unknown';
             return (
                 benName.includes(outSearchQuery) ||
-                t.amountBDT.toString().includes(outSearchQuery) ||
-                t.amountUSD.toString().includes(outSearchQuery) ||
-                t.date.includes(outSearchQuery) ||
-                t.status.toLowerCase().includes(outSearchQuery)
+                (t.amountBDT?.toString() || '').includes(outSearchQuery) ||
+                (t.amountUSD?.toString() || '').includes(outSearchQuery) ||
+                (t.date || '').includes(outSearchQuery) ||
+                (t.status?.toLowerCase() || '').includes(outSearchQuery)
             );
         });
     }
@@ -1561,7 +1683,8 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
         els.outTableBody.appendChild(totalRow);
         outTxs.forEach(tx => {
             const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
-            const benName = ben ? ben.nickname || ben.name : 'Unknown';
+            const isUnknown = !ben && !tx.beneficiaryName;
+            const benName = ben ? (ben.nickname || ben.name) : (tx.beneficiaryName || 'Unknown');
             const statusClass = tx.status === 'paid' ? 'bg-green-light text-green' : (tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-gray-light');
 
             const tr = document.createElement('tr');
@@ -1570,6 +1693,7 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
                 <td data-label="Date">${tx.date}</td>
                 <td data-label="Receiver">
                     <span class="receiver-link" data-id="${tx.beneficiaryId}" style="cursor:pointer; text-decoration:underline;">${benName}</span>
+                    ${isUnknown ? `<button class="fix-name-btn icon-btn" data-id="${tx.id}" title="Fix Name" style="font-size:0.7rem;padding:2px 7px;margin-left:4px;background:var(--brand-light);border:none;color:var(--brand-primary);border-radius:4px;cursor:pointer;">✏ Fix</button>` : ''}
                 </td>
                 <td data-label="Amount (USD)" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
                 <td data-label="Amount (BDT)" class="amount-column">
@@ -1637,7 +1761,7 @@ function generateMonthlyReport() {
     let monthlyLiabilitiesBDT = 0;
     let monthlyLiabilitiesUSD = 0;
     monthlyOutTxs.forEach(t => {
-        if (t.status === 'pending') {
+        if (t.status === 'pending' || t.status === 'hold') {
             monthlyLiabilitiesBDT += parseFloat(t.amountBDT || 0);
             monthlyLiabilitiesUSD += parseFloat(t.amountUSD || 0);
         }
@@ -1685,10 +1809,25 @@ function generateMonthlyReport() {
     const benGroups = {};
     outTxs.forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-        const name = ben ? ben.nickname || ben.name : 'Unknown';
+        const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
         if (!benGroups[name]) benGroups[name] = { bdt: 0, usd: 0 };
         benGroups[name].bdt += parseFloat(t.amountBDT || 0);
         benGroups[name].usd += parseFloat(t.amountUSD || 0);
+    });
+
+    // Pending/Hold outgoing
+    const pendingOutTxs = transactions.filter(t =>
+        t.type === 'outgoing' &&
+        (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth &&
+        ['pending', 'hold'].includes(t.status)
+    );
+    const pendingBenGroups = {};
+    pendingOutTxs.forEach(t => {
+        const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
+        const name = ben ? ben.nickname || ben.name : 'Unknown';
+        if (!pendingBenGroups[name]) pendingBenGroups[name] = { bdt: 0, usd: 0 };
+        pendingBenGroups[name].bdt += parseFloat(t.amountBDT || 0);
+        pendingBenGroups[name].usd += parseFloat(t.amountUSD || 0);
     });
 
     // 5. Populate Tables (Sorted Alphabetically)
@@ -1706,7 +1845,13 @@ function generateMonthlyReport() {
     els.repInTotalUSD.textContent = fmtUSD(liquidity.monthReceiptsUSD);
 
     const sortedBens = Object.entries(benGroups).sort((a, b) => a[0].localeCompare(b[0]));
-    els.repOutBody.innerHTML = sortedBens.map(([name, data]) => `
+    const sortedPendingBens = Object.entries(pendingBenGroups).sort((a, b) => a[0].localeCompare(b[0]));
+
+    let pendingTotalBDT = 0;
+    let pendingTotalUSD = 0;
+    sortedPendingBens.forEach(([, d]) => { pendingTotalBDT += d.bdt; pendingTotalUSD += d.usd; });
+
+    const paidRows = sortedBens.map(([name, data]) => `
         <tr style="border-bottom: 1px solid var(--border-color); transition: all 0.2s;">
             <td style="font-weight: 500; font-size: 0.95rem; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
                 <span style="display:inline-block; vertical-align:middle; width:8px; height:8px; border-radius:50%; background:var(--danger-color); margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
@@ -1715,6 +1860,33 @@ function generateMonthlyReport() {
             <td class="text-right" style="font-weight: 600; color: #111;">${fmtBDT(data.bdt)}</td>
         </tr>
     `).join('');
+
+    let pendingRows = '';
+    if (sortedPendingBens.length > 0) {
+        pendingRows = `
+            <tr style="background: #fff8e1;">
+                <td colspan="3" style="font-weight: 700; color: #92400e; text-align: center; padding: 5px 8px; font-size: 0.8rem; letter-spacing: 0.05em;">
+                    PENDING LIABILITIES (Not Yet Paid)
+                </td>
+            </tr>
+        ` + sortedPendingBens.map(([name, data]) => `
+            <tr style="border-bottom: 1px solid #fde68a; background: #fffbeb;">
+                <td style="font-weight: 500; font-size: 0.95rem; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
+                    <span style="display:inline-block; vertical-align:middle; width:8px; height:8px; border-radius:50%; background:#f59e0b; margin-right:4px;"></span><span style="vertical-align:middle; color:#92400e;">${name}</span>
+                </td>
+                <td class="text-right" style="color: #b45309; font-weight: 500;">${fmtUSD(data.usd)}</td>
+                <td class="text-right" style="font-weight: 600; color: #92400e;">${fmtBDT(data.bdt)}</td>
+            </tr>
+        `).join('') + `
+            <tr style="background: #fef3c7; font-weight: 700;">
+                <td style="color: #92400e; font-size: 0.85rem;">Pending Total</td>
+                <td class="text-right" style="color: #b45309;">${fmtUSD(pendingTotalUSD)}</td>
+                <td class="text-right" style="color: #92400e;">${fmtBDT(pendingTotalBDT)}</td>
+            </tr>
+        `;
+    }
+
+    els.repOutBody.innerHTML = paidRows + pendingRows;
     els.repOutTotal.textContent = fmtBDT(liquidity.monthDisbursedBDT);
     els.repOutTotalUSD.textContent = fmtUSD(liquidity.monthDisbursedUSD);
 }
@@ -1744,14 +1916,32 @@ function exportCEOReportCSV() {
     const outTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status === 'paid');
     outTxs.forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-        const name = ben ? ben.nickname || ben.name : 'Unknown';
+        const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
         if (!benGroups[name]) benGroups[name] = { bdt: 0, usd: 0 };
         benGroups[name].bdt += parseFloat(t.amountBDT || 0);
         benGroups[name].usd += parseFloat(t.amountUSD || 0);
     });
 
+    const pendingBenGroupsCSV = {};
+    const pendingOutTxsCSV = transactions.filter(t =>
+        t.type === 'outgoing' &&
+        (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth &&
+        ['pending', 'hold'].includes(t.status)
+    );
+    pendingOutTxsCSV.forEach(t => {
+        const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
+        const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
+        if (!pendingBenGroupsCSV[name]) pendingBenGroupsCSV[name] = { bdt: 0, usd: 0 };
+        pendingBenGroupsCSV[name].bdt += parseFloat(t.amountBDT || 0);
+        pendingBenGroupsCSV[name].usd += parseFloat(t.amountUSD || 0);
+    });
+
     const sortedSources = Object.entries(sourceGroups).sort((a, b) => a[0].localeCompare(b[0]));
     const sortedBens = Object.entries(benGroups).sort((a, b) => a[0].localeCompare(b[0]));
+    const sortedPendingBensCSV = Object.entries(pendingBenGroupsCSV).sort((a, b) => a[0].localeCompare(b[0]));
+    let csvPendingTotalUSD = 0;
+    let csvPendingTotalBDT = 0;
+    sortedPendingBensCSV.forEach(([, d]) => { csvPendingTotalUSD += d.usd; csvPendingTotalBDT += d.bdt; });
 
     // 2. CSV Construction
     let csv = `Zikrullah TV LLC - EXECUTIVE FINANCIAL OPERATIONS REPORT\n`;
@@ -1763,7 +1953,8 @@ function exportCEOReportCSV() {
     csv += `Category,USD Amount,BDT Amount (৳)\n`;
     csv += `Opening Balance,${liquidity.openingUSD.toFixed(2)},${liquidity.openingBDT.toFixed(2)}\n`;
     csv += `Total Money In,${liquidity.monthReceiptsUSD.toFixed(2)},${liquidity.monthReceiptsBDT.toFixed(2)}\n`;
-    csv += `Total Money Out,${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n`;
+    csv += `Total Money Out (Paid),${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n`;
+    csv += `Pending Liabilities,${csvPendingTotalUSD.toFixed(2)},${csvPendingTotalBDT.toFixed(2)}\n`;
     csv += `Closing Balance,${liquidity.closingUSD.toFixed(2)},${liquidity.closingBDT.toFixed(2)}\n`;
     csv += `Total Liquidity Position,${liquidity.closingUSD.toFixed(2)},${liquidity.closingBDT.toFixed(2)}\n\n`;
 
@@ -1775,13 +1966,23 @@ function exportCEOReportCSV() {
     });
     csv += `TOTAL IN,${liquidity.monthReceiptsUSD.toFixed(2)},${liquidity.monthReceiptsBDT.toFixed(2)}\n\n`;
 
-    // 5. Money Out Summary
-    csv += `MONEY OUT (BY RECEIVER) - ALPHABETICAL\n`;
+    // 5. Money Out Summary (Paid)
+    csv += `MONEY OUT - PAID (BY RECEIVER) - ALPHABETICAL\n`;
     csv += `Receiver Name,USD Amount,BDT Total (৳)\n`;
     sortedBens.forEach(([name, data]) => {
         csv += `"${name}",${data.usd.toFixed(2)},${data.bdt.toFixed(2)}\n`;
     });
-    csv += `TOTAL OUT,${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n`;
+    csv += `TOTAL PAID OUT,${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n\n`;
+
+    // 6. Pending Liabilities
+    if (sortedPendingBensCSV.length > 0) {
+        csv += `PENDING LIABILITIES (NOT YET PAID)\n`;
+        csv += `Receiver Name,USD Amount,BDT Total (৳)\n`;
+        sortedPendingBensCSV.forEach(([name, data]) => {
+            csv += `"${name}",${data.usd.toFixed(2)},${data.bdt.toFixed(2)}\n`;
+        });
+        csv += `TOTAL PENDING,${csvPendingTotalUSD.toFixed(2)},${csvPendingTotalBDT.toFixed(2)}\n`;
+    }
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
@@ -1811,7 +2012,7 @@ function exportCSV(type) {
             return [t.date, t.subType, t.source, t.amountUSD, t.amountBDT, t.rate];
         } else {
             const ben = store.state.beneficiaries.find(b => b.id === t.beneficiaryId);
-            const name = ben ? ben.nickname || ben.name : 'Unknown';
+            const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
             return [t.date, name, t.amountUSD, t.amountBDT, t.rate, t.status];
         }
     });
@@ -2035,13 +2236,14 @@ function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth
     if (q) {
         filtered = filtered.filter(t => {
             const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-            const identity = (t.type === 'incoming' ? t.source : (ben ? ben.nickname || ben.name : 'Unknown')).toLowerCase();
+            const rawIdentity = t.type === 'incoming' ? t.source : (ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown'));
+            const identity = (rawIdentity || '').toLowerCase();
             return (
-                t.date.includes(q) ||
+                (t.date || '').includes(q) ||
                 identity.includes(q) ||
-                t.amountUSD.toString().includes(q) ||
-                t.amountBDT.toString().includes(q) ||
-                t.type.toLowerCase().includes(q)
+                (t.amountUSD?.toString() || '').includes(q) ||
+                (t.amountBDT?.toString() || '').includes(q) ||
+                (t.type?.toLowerCase() || '').includes(q)
             );
         });
     }
@@ -2054,7 +2256,7 @@ function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth
 
     filtered.forEach(tx => {
         const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
-        const identity = tx.type === 'incoming' ? tx.source : (ben ? ben.nickname || ben.name : 'Unknown');
+        const identity = tx.type === 'incoming' ? tx.source : (ben ? ben.nickname || ben.name : (tx.beneficiaryName || 'Unknown'));
         const typeLabel = tx.type === 'incoming' ? (tx.subType === 'return' ? 'Return' : 'Receive') : 'Payout';
         const typeClass = tx.type === 'incoming' ? (tx.subType === 'return' ? 'bg-orange-light text-orange' : 'bg-green-light text-green') : 'bg-indigo-light text-indigo';
 
@@ -2065,20 +2267,13 @@ function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth
             <td data-label="Identity">${identity}</td>
             <td data-label="USD" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
             <td data-label="BDT" class="amount-column font-bold">${fmtBDT(tx.amountBDT)}</td>
-            <td data-label="Rate" class="text-right">${tx.rate.toFixed(2)}</td>
+            <td data-label="Rate" class="text-right">${(tx.rate || 0).toFixed(2)}</td>
             <td class="actions-cell">
                 <button class="icon-btn edit-tx-btn-hist" data-id="${tx.id}" title="Edit">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
                 </button>
             </td>
         `;
-
-        // Handle Edit from History
-        tr.querySelector('.edit-tx-btn-hist').addEventListener('click', () => {
-            els.historyModal.classList.remove('open');
-            editTransaction(tx.id);
-        });
-
         els.historyTableBody.appendChild(tr);
     });
 }
@@ -2118,7 +2313,7 @@ function downloadBankStatement(transactions, beneficiaries, month, year) {
 
         filtered.forEach(tx => {
             const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
-            const identity = tx.type === 'incoming' ? (tx.source || 'Unknown') : (ben ? ben.nickname || ben.name : 'Unknown');
+            const identity = tx.type === 'incoming' ? (tx.source || 'Unknown') : (ben ? ben.nickname || ben.name : (tx.beneficiaryName || 'Unknown'));
             const typeLabel = tx.type === 'incoming' ? (tx.subType === 'return' ? 'Return' : 'Receive') : 'Payout';
 
             const usd = (parseFloat(tx.amountUSD) || 0).toFixed(2);

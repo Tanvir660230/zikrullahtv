@@ -22,21 +22,33 @@ class Store {
                 field: 'date',
                 direction: 'desc'
             },
-            isOnline: false
+            isOnline: false,
+            isLoading: true
         };
+        this._firstDataReceived = false;
         this.listeners = [];
         this.init();
     }
 
     async init() {
-        // Wait for DB to be ready (load firebase SDK)
         if (db.initPromise) {
-            this.state.isOnline = await db.initPromise;
+            const result = await db.initPromise;
+            this.state.isOnline = result.online;
+            if (!result.online) {
+                // Firebase failed — stop spinner, show zeros
+                this.state.isLoading = false;
+                this.notify();
+                return;
+            }
         }
-
-        // Give a small delay for DB check if needed, though db.init is usually fast or async
-        // Better: just start subscriptions. 
         this.setupSubscriptions();
+    }
+
+    _markDataReceived() {
+        if (!this._firstDataReceived) {
+            this._firstDataReceived = true;
+            this.state.isLoading = false;
+        }
     }
 
     setupSubscriptions() {
@@ -45,29 +57,32 @@ class Store {
             if (settings) {
                 this.state.settings = settings;
                 this.calculateLiquidity();
-                this.notify();
             }
+            this._markDataReceived();
+            this.notify();
         });
 
         // 2. Transactions
         db.subscribeToCollection('transactions', (data) => {
             this.state.transactions = data;
             this.calculateLiquidity();
+            this._markDataReceived();
             this.notify();
         });
 
         // 3. Beneficiaries
         db.subscribeToCollection('beneficiaries', (data) => {
             this.state.beneficiaries = data;
-            // Sort by nickname/name
             this.state.beneficiaries.sort((a, b) => (a.nickname || a.name || '').localeCompare(b.nickname || b.name || ''));
+            this._markDataReceived();
             this.notify();
         });
 
         // 4. Sources
         db.subscribeToCollection('sources', (data) => {
             this.state.sources = data;
-            this.state.sources.sort((a, b) => a.name.localeCompare(b.name));
+            this.state.sources.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            this._markDataReceived();
             this.notify();
         });
     }
@@ -107,9 +122,10 @@ class Store {
         const globalOpenUSD = parseFloat(this.state.settings?.openingBalanceUSD) || 0;
         const globalOpenBDT = parseFloat(this.state.settings?.openingBalanceBDT) || 0;
 
-        // Average Rate Calculation (Weighted basis of all incoming money)
-        let totalLifetimeUSDIn = globalOpenUSD;
-        let totalLifetimeBDTIn = globalOpenBDT;
+        // Weighted Average Buy Rate — weighted sum of (USD × rate) / total USD
+        // Opening balance included only when both sides are set (implies a known starting rate)
+        let totalWeightedBDT = (globalOpenUSD > 0 && globalOpenBDT > 0) ? globalOpenBDT : 0;
+        let totalLifetimeUSDIn = (globalOpenUSD > 0 && globalOpenBDT > 0) ? globalOpenUSD : 0;
 
         // Previous Month Carry Over Calculation
         let prevPeriodUSD = 0;
@@ -129,17 +145,16 @@ class Store {
             const amountUSD = Number(tx.amountUSD) || 0;
             const amountBDT = Number(tx.amountBDT) || 0;
 
-            // Accumulate Lifetime Incoming for Average Rate
-            // We only count money that ACTUALLY added USD liquidity
-            if (tx.type === 'incoming' && tx.status !== 'hold') {
-                if (tx.subType === 'return') {
-                    // Returns reduce our total BDT/USD pool
-                    totalLifetimeUSDIn -= amountUSD;
-                    totalLifetimeBDTIn -= amountBDT;
-                } else {
-                    // Receipts add to our pool
+            // Weighted average: use tx.rate if available, otherwise derive from BDT/USD
+            // Only count 'receive' with USD > 0 and a valid rate
+            if (tx.type === 'incoming' && tx.status !== 'hold' && tx.subType !== 'return'
+                && amountUSD > 0) {
+                const txRate = Number(tx.rate) > 0
+                    ? Number(tx.rate)
+                    : (amountBDT > 0 ? amountBDT / amountUSD : 0);
+                if (txRate > 0) {
                     totalLifetimeUSDIn += amountUSD;
-                    totalLifetimeBDTIn += amountBDT;
+                    totalWeightedBDT += amountUSD * txRate;
                 }
             }
 
@@ -191,15 +206,15 @@ class Store {
         const closingUSD = openingUSD + netMonthUSD;
         const closingBDT = openingBDT + netMonthBDT;
 
-        // Final Average Buy Rate calculation
+        // Final Weighted Average Buy Rate = total weighted BDT / total USD in
         let averageBuyRate = 0;
-        if (totalLifetimeUSDIn > 0 && totalLifetimeBDTIn > 0) {
-            averageBuyRate = totalLifetimeBDTIn / totalLifetimeUSDIn;
+        if (totalLifetimeUSDIn > 0 && totalWeightedBDT > 0) {
+            averageBuyRate = totalWeightedBDT / totalLifetimeUSDIn;
         }
 
-        // If we still have 0, try to use the most recent transaction rate or settings rate as a fallback
-        if (averageBuyRate <= 0) {
-            const lastIncomingTx = this.state.transactions.find(t => t.type === 'incoming' && t.rate > 0);
+        // Fallback if result is 0, Infinity, or NaN
+        if (!isFinite(averageBuyRate) || averageBuyRate <= 0) {
+            const lastIncomingTx = [...this.state.transactions].reverse().find(t => t.type === 'incoming' && t.rate > 0);
             averageBuyRate = lastIncomingTx ? lastIncomingTx.rate : (this.state.settings.lastRate || 0);
         }
 
@@ -255,10 +270,6 @@ class Store {
 
     async deleteBeneficiary(id) {
         await db.deleteBeneficiary(id);
-    }
-
-    async deleteAllBeneficiaries() {
-        await db.deleteAllBeneficiaries();
     }
 
     // --- Sources Actions ---

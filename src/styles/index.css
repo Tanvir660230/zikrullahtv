@@ -1209,6 +1209,21 @@ tbody tr.status-pending {
     gap: 0.5rem;
 }
 
+/* Loading spinner for balance values */
+.val-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(0,0,0,0.1);
+    border-top-color: var(--brand-primary, #16a34a);
+    border-radius: 50%;
+    animation: val-spin 0.7s linear infinite;
+    vertical-align: middle;
+}
+@keyframes val-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* Animations - Soft and Professional */
 @keyframes fadeInSlide {
     from {

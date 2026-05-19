@@ -19,7 +19,7 @@ export const localService = {
 
     async updateDocument(collectionName, id, updates) {
         const list = this.getCollection(collectionName);
-        const index = list.findIndex(item => item.id == id);
+        const index = list.findIndex(item => item.id === id);
         if (index !== -1) {
             list[index] = { ...list[index], ...updates };
             this.saveCollection(collectionName, list);
@@ -30,7 +30,7 @@ export const localService = {
 
     async deleteDocument(collectionName, id) {
         const list = this.getCollection(collectionName);
-        const newList = list.filter(item => item.id != id);
+        const newList = list.filter(item => item.id !== id);
         this.saveCollection(collectionName, newList);
         return true;
     },
