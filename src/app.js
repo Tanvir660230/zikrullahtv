@@ -1,7 +1,17 @@
-import { store } from './store/store.js?v=34';
+import { store } from './store/store.js';
 import { fmtUSD, fmtBDT, showToast, debounce } from './utils/utils.js';
 
-// Elements Map
+// --- Modular Imports (New split structure) ---
+import { els } from './ui/elements.js';
+import { render, renderSourcesList, renderBeneficiariesList } from './ui/render.js';
+import { renderTables, renderHistoryTable, populateHistYears } from './ui/tables.js';
+import { setupSmartCalc, editTransaction, cloneTransaction, openBeneficiaryModal } from './ui/forms.js';
+import { generateMonthlyReport, exportCEOReportCSV, exportCSV, downloadFullBackup, downloadBankStatement } from './ui/report.js';
+import { copyToClipboard } from './utils/clipboard.js';
+
+// --- OLD CODE BELOW — kept for reference, will be removed after split is confirmed working ---
+
+/* MOVED TO: src/ui/elements.js
 const els = {
     // Header - Month Nav
     prevMonthBtn: document.getElementById('prevMonthBtn'),
@@ -177,6 +187,7 @@ const els = {
     sidebarLogoutBtn: document.getElementById('sidebarLogoutBtn'),
     sidebarSettingsBtn: document.getElementById('sidebarSettingsBtn')
 };
+*/
 
 // --- Responsive Layout ---
 function setupResponsiveLayout() {
@@ -260,8 +271,7 @@ async function updateConnectionStatus() {
     if (!navigator.onLine) {
         statusEl.textContent = 'Offline';
         statusEl.className = 'status-badge-v2 danger';
-        statusEl.style.background = '#fef2f2';
-        statusEl.style.color = '#991b1b';
+        statusEl.removeAttribute('style');
         statusEl.title = 'No Internet Connection';
         showToast('You are currently Offline. Changes will not be saved.', 'error');
         return;
@@ -277,13 +287,13 @@ async function updateConnectionStatus() {
         if (isOnline) {
             statusEl.textContent = 'Online';
             statusEl.className = 'status-badge-v2 success';
+            statusEl.removeAttribute('style');
             statusEl.title = 'Connected to Firebase Cloud Sync';
             console.log('App: Data connection established (Cloud Mode)');
         } else {
             statusEl.textContent = 'Disconnected';
             statusEl.className = 'status-badge-v2 danger';
-            statusEl.style.background = '#fef2f2';
-            statusEl.style.color = '#991b1b';
+            statusEl.removeAttribute('style');
             statusEl.title = 'Connection Failed: ' + (errorMsg || 'Unknown Error');
             console.warn('App: Cloud connection failed:', errorMsg);
 
@@ -300,6 +310,7 @@ async function updateConnectionStatus() {
         console.error('App: Critical connection check failure:', err);
         statusEl.textContent = 'Error';
         statusEl.className = 'status-badge-v2 danger';
+        statusEl.removeAttribute('style');
         showToast('Database connection error', 'error');
     }
 }
@@ -527,20 +538,20 @@ function setupEventListeners() {
         // Default Date and Month
         els.outDate.value = new Date().toISOString().split('T')[0];
         els.outAccMonth.value = store.state.selectedMonth;
-        // Auto-fill Rate with Average Buy Rate
-        const avgRate = store.state.liquidity.averageBuyRate || 0;
-        if (avgRate > 0) {
-            els.outRate.value = avgRate.toFixed(2);
+        // Auto-fill with implied rate (actual BDT/USD ratio — consistent with dashboard)
+        const fillRate = store.state.liquidity.impliedRate || store.state.liquidity.averageBuyRate || 0;
+        if (fillRate > 0) {
+            els.outRate.value = fillRate.toFixed(2);
         }
     });
 
     if (els.applyAvgRateBtn) {
         els.applyAvgRateBtn?.addEventListener('click', () => {
-            const avgRate = store.state.liquidity.averageBuyRate || 0;
-            if (avgRate > 0) {
-                els.outRate.value = avgRate.toFixed(2);
+            const fillRate = store.state.liquidity.impliedRate || store.state.liquidity.averageBuyRate || 0;
+            if (fillRate > 0) {
+                els.outRate.value = fillRate.toFixed(2);
                 els.outRate.dispatchEvent(new Event('input'));
-                showToast('Average Buy Rate Applied', 'info');
+                showToast('Current Rate Applied', 'info');
             }
         });
     }
@@ -657,20 +668,6 @@ function setupEventListeners() {
         }
     });
 
-    // Clear Data
-    if (els.clearDataBtn) {
-        els.clearDataBtn?.addEventListener('click', async () => {
-            if (confirm('⚠ Are you sure you want to DELETE ALL TRANSACTIONS?\n\nThis action cannot be undone.')) {
-                try {
-                    await store.clearAllData();
-                    showToast('All data cleared', 'success');
-                    els.settingsModal.classList.remove('open');
-                } catch (err) {
-                    showToast('Failed to clear data: ' + err.message, 'error');
-                }
-            }
-        });
-    }
 
     // --- Sources Management ---
     els.manageSourcesBtn?.addEventListener('click', () => {
@@ -856,6 +853,26 @@ function setupEventListeners() {
     setupSmartCalc(els.incUSD, els.incBDT, els.incRate);
     setupSmartCalc(els.outUSD, els.outBDT, els.outRate);
 
+    // --- Money Out: Live Balance Preview ---
+    const updateOutPreview = () => {
+        const bdtVal = parseFloat(els.outBDT.value) || 0;
+        const preview = document.getElementById('outPaymentPreview');
+        if (!preview) return;
+        if (bdtVal > 0) {
+            const available = store.state.liquidity.closingBDT;
+            const after = available - bdtVal;
+            preview.style.display = 'flex';
+            document.getElementById('ppAvailable').textContent = fmtBDT(available);
+            const ppAfterEl = document.getElementById('ppAfter');
+            ppAfterEl.textContent = fmtBDT(after);
+            ppAfterEl.style.color = after < 0 ? 'var(--danger)' : 'var(--success-text)';
+            preview.classList.toggle('preview-warning', after < 0);
+        } else {
+            preview.style.display = 'none';
+        }
+    };
+    els.outBDT?.addEventListener('input', updateOutPreview);
+
     // Incoming Form Submit
     els.incomingForm?.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -885,6 +902,18 @@ function setupEventListeners() {
             if (txData.amountUSD < 0 || txData.amountBDT < 0) {
                 showToast('Amounts must be positive. Use Return type for refunds.', 'error');
                 return;
+            }
+            // Return validation: warn if return exceeds current balance
+            if (txData.subType === 'return') {
+                const { closingUSD, closingBDT } = store.state.liquidity;
+                if (txData.amountUSD > 0 && txData.amountUSD > closingUSD) {
+                    showToast(`Return $${txData.amountUSD} exceeds available USD $${closingUSD.toFixed(2)}`, 'error');
+                    return;
+                }
+                if (txData.amountBDT > 0 && txData.amountBDT > closingBDT) {
+                    showToast(`Return ৳${txData.amountBDT} exceeds available BDT ৳${closingBDT.toFixed(2)}`, 'error');
+                    return;
+                }
             }
 
             if (id) {
@@ -959,40 +988,7 @@ function setupEventListeners() {
 
 
 
-    function editTransaction(id) {
-        const tx = store.state.transactions.find(t => t.id === id);
-        if (!tx) return;
-
-        // Prevent editing if Paid (Outgoing only per request, or both? User said "before paid mark", implies outgoing flow)
-        if (tx.type === 'outgoing' && tx.status === 'paid') {
-            showToast('Paid records are locked and cannot be edited.', 'error');
-            return;
-        }
-
-        if (tx.type === 'incoming') {
-            els.incomingModal.classList.add('open');
-            els.incId.value = tx.id; // SET ID
-            els.incDate.value = tx.date;
-            els.incAccMonth.value = tx.accountingMonth || tx.date.slice(0, 7);
-            els.incType.value = tx.subType;
-            els.incSource.value = tx.source;
-            els.incRate.value = tx.rate;
-            els.incUSD.value = tx.amountUSD;
-            els.incBDT.value = tx.amountBDT;
-            // Removed auto-triggering calculation here to preserve precision of saved data
-        } else {
-            els.outgoingModal.classList.add('open');
-            els.outId.value = tx.id; // SET ID
-            els.outDate.value = tx.date;
-            els.outAccMonth.value = tx.accountingMonth || tx.date.slice(0, 7);
-            els.outBeneficiary.value = tx.beneficiaryId;
-            els.outBeneficiary.dispatchEvent(new Event('change')); // Trigger bank preview
-            els.outRate.value = tx.rate;
-            els.outUSD.value = tx.amountUSD;
-            els.outBDT.value = tx.amountBDT;
-            // Removed auto-triggering calculation here to preserve precision of saved data
-        }
-    }
+    // MOVED TO: src/ui/forms.js → editTransaction()
 
     // Source Auto-Fill Rate
     els.incSource?.addEventListener('change', () => {
@@ -1019,31 +1015,32 @@ function setupEventListeners() {
             els.bankPreview.style.display = 'none';
         }
 
-        // 1. Check for Pending/Hold to Merge (Robust Match)
+        // 1. Check for Pending/Hold to Merge — only within selected month
         const existingUnpaid = store.state.transactions.find(t =>
             String(t.beneficiaryId) === String(benId) &&
             t.type === 'outgoing' &&
-            ['pending', 'hold'].includes((t.status || '').toLowerCase())
+            ['pending', 'hold'].includes((t.status || '').toLowerCase()) &&
+            (t.accountingMonth || t.date.slice(0, 7)) === store.state.selectedMonth
         );
+
+        const fillRate = store.state.liquidity.impliedRate || store.state.liquidity.averageBuyRate || 0;
 
         if (existingUnpaid) {
             const load = confirm(`Found a pending payment of $${existingUnpaid.amountUSD} / ৳${existingUnpaid.amountBDT} for this beneficiary.\n\nOK = Load and update it\nCancel = Create a new entry`);
             if (load) {
-                // MERGE MODE
+                // MERGE MODE — load stored values directly, no recalculation (avoids corrupting saved data)
                 els.outId.value = existingUnpaid.id;
                 els.outUSD.value = existingUnpaid.amountUSD;
                 els.outBDT.value = existingUnpaid.amountBDT;
-                els.outRate.value = existingUnpaid.rate;
-                els.outRate.dispatchEvent(new Event('input'));
+                els.outRate.value = existingUnpaid.rate || fillRate.toFixed(2);
                 showToast(`Loaded Pending Tx ($${existingUnpaid.amountUSD}). Update total to merge.`, 'info');
             } else {
-                // NEW ENTRY MODE (ignore existing pending)
+                // NEW ENTRY MODE
                 els.outId.value = '';
                 els.outUSD.value = '';
                 els.outBDT.value = '';
-                const avgRate = store.state.liquidity.averageBuyRate || 0;
-                if (avgRate > 0) {
-                    els.outRate.value = avgRate.toFixed(2);
+                if (fillRate > 0) {
+                    els.outRate.value = fillRate.toFixed(2);
                     els.outRate.dispatchEvent(new Event('input'));
                 }
             }
@@ -1052,11 +1049,8 @@ function setupEventListeners() {
             els.outId.value = '';
             els.outUSD.value = '';
             els.outBDT.value = '';
-
-            // Always use average buy rate for payouts — keeps USD/BDT in sync
-            const avgRate = store.state.liquidity.averageBuyRate || 0;
-            if (avgRate > 0) {
-                els.outRate.value = avgRate.toFixed(2);
+            if (fillRate > 0) {
+                els.outRate.value = fillRate.toFixed(2);
                 els.outRate.dispatchEvent(new Event('input'));
             }
         }
@@ -1110,12 +1104,13 @@ function setupEventListeners() {
             return;
         }
 
-        // 3. Mark Paid / Hold / Resume / Clone / Edit
+        // 3. Mark Paid / Hold / Resume / Clone / Edit / Delete
         const payBtn = e.target.closest('.pay-btn');
         const holdBtn = e.target.closest('.hold-btn');
         const resumeBtn = e.target.closest('.resume-btn');
         const editTxBtn = e.target.closest('.edit-tx-btn');
         const cloneBtn = e.target.closest('.clone-btn');
+        const deleteTxBtn = e.target.closest('.delete-tx-btn');
 
         if (payBtn) {
             const id = payBtn.dataset.id;
@@ -1135,6 +1130,18 @@ function setupEventListeners() {
             editTransaction(editTxBtn.dataset.id);
         } else if (cloneBtn) {
             cloneTransaction(cloneBtn.dataset.id);
+        } else if (deleteTxBtn) {
+            const id = deleteTxBtn.dataset.id;
+            const tx = store.state.transactions.find(t => t.id === id);
+            const label = tx?.beneficiaryName || store.state.beneficiaries.find(b => b.id === tx?.beneficiaryId)?.nickname || 'this transaction';
+            if (confirm(`Delete "${label}"?\n\nThis cannot be undone.`)) {
+                try {
+                    await store.deleteTransaction(id);
+                    showToast('Transaction deleted', 'success');
+                } catch (err) {
+                    showToast(err.message, 'error');
+                }
+            }
         }
     });
 
@@ -1151,22 +1158,10 @@ function setupEventListeners() {
     els.exportOutBtn?.addEventListener('click', () => exportCSV('outgoing'));
 }
 
-function populateHistYears() {
-    if (!els.histYear) return;
-    const txs = store.state.transactions;
-    const currentYear = new Date().getFullYear();
-    const years = new Set([currentYear]);
-    txs.forEach(t => {
-        const y = parseInt((t.accountingMonth || t.date || '').slice(0, 4));
-        if (y >= 2020 && y <= currentYear + 1) years.add(y);
-    });
-    const selectedYear = els.histYear.value || String(currentYear);
-    els.histYear.innerHTML = [...years].sort().map(y =>
-        `<option value="${y}"${String(y) === selectedYear ? ' selected' : ''}>${y}</option>`
-    ).join('');
-}
+// MOVED TO: src/ui/tables.js → populateHistYears()
 
-function setupSmartCalc(usdInput, bdtInput, rateInput) {
+// MOVED TO: src/ui/forms.js → setupSmartCalc()
+/* function setupSmartCalc(usdInput, bdtInput, rateInput) {
     let lastEdited = 'usd'; // Track whether user prefers USD or BDT as source
 
     // Helper to get values safely, returning null for empty/invalid
@@ -1238,8 +1233,15 @@ function setupSmartCalc(usdInput, bdtInput, rateInput) {
     usdInput.addEventListener('click', () => lastEdited = 'usd');
     bdtInput.addEventListener('click', () => lastEdited = 'bdt');
 }
+*/
 
+// MOVED TO: src/ui/render.js → render(), renderSourcesList(), renderBeneficiariesList(), calculatePaymentSummary(), renderProjectedCashflow()
+// MOVED TO: src/ui/tables.js → renderTables(), renderHistoryTable()
+// MOVED TO: src/ui/report.js → generateMonthlyReport(), exportCEOReportCSV(), exportCSV(), downloadFullBackup(), downloadBankStatement()
+// MOVED TO: src/utils/clipboard.js → copyToClipboard(), fallbackCopyTextToClipboard()
+// MOVED TO: src/ui/forms.js → cloneTransaction(), openBeneficiaryModal()
 
+/* OLD IMPLEMENTATIONS — remove after split confirmed working
 
 const SPINNER = '<span class="val-spinner"></span>';
 
@@ -1270,10 +1272,19 @@ function render(state) {
 
     // Display Closing Balance
     const avgRate = state.liquidity.averageBuyRate || 0;
+    const impliedRate = state.liquidity.impliedRate || 0;
     els.liqUSD.textContent = fmtUSD(closingUSD);
     els.liqBDT.textContent = fmtBDT(closingBDT);
-    if (els.avgBuyRate) els.avgBuyRate.textContent = avgRate.toFixed(2);
-    if (els.hintRateVal) els.hintRateVal.textContent = avgRate.toFixed(2);
+    // Both dashboard and Money Out hint use implied rate — consistent everywhere
+    const displayRate = impliedRate > 0 ? impliedRate : avgRate;
+    if (els.avgBuyRate) els.avgBuyRate.textContent = displayRate.toFixed(2);
+    if (els.hintRateVal) els.hintRateVal.textContent = displayRate.toFixed(2);
+
+    // Update balance strips in Money In / Money Out modals
+    const incStripUSD = document.getElementById('incStripUSD');
+    const incStripBDT = document.getElementById('incStripBDT');
+    if (incStripUSD) incStripUSD.textContent = fmtUSD(closingUSD);
+    if (incStripBDT) incStripBDT.textContent = fmtBDT(closingBDT);
 
     // Update Mini Stats in Tabs (Both Money In and Money Out)
     if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(closingUSD);
@@ -1332,7 +1343,7 @@ function render(state) {
     // Render Tables (Filtered by Month & Sorted)
     renderTables(state.transactions, state.beneficiaries, state.selectedMonth, state.sortConfig);
 
-    renderProjectedCashflow(state.transactions, state.liquidity, state.settings);
+    renderProjectedCashflow(state.transactions, state.liquidity, state.selectedMonth);
 
 
     // Update Modals if open
@@ -1721,6 +1732,9 @@ function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
                     <button class="icon-btn clone-btn" data-id="${tx.id}" title="Clone">
                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v8.25A2.25 2.25 0 0 0 6 16.5h2.25m8.25-8.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-7.5A2.25 2.25 0 0 1 8.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 0 0-2.25 2.25v6" /></svg>
                     </button>
+                    ${tx.status !== 'paid' ? `<button class="icon-btn delete-tx-btn" data-id="${tx.id}" title="Delete Transaction">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
+                    </button>` : ''}
                 </td>
             `;
             els.outTableBody.appendChild(tr);
@@ -1759,18 +1773,13 @@ function generateMonthlyReport() {
     // Calculate Monthly Liabilities (Pending & Hold)
     const monthlyOutTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.type === 'outgoing');
     let monthlyLiabilitiesBDT = 0;
-    let monthlyLiabilitiesUSD = 0;
     monthlyOutTxs.forEach(t => {
         if (t.status === 'pending' || t.status === 'hold') {
             monthlyLiabilitiesBDT += parseFloat(t.amountBDT || 0);
-            monthlyLiabilitiesUSD += parseFloat(t.amountUSD || 0);
         }
     });
 
     const netFlowBDT = liquidity.monthReceiptsBDT - liquidity.monthDisbursedBDT;
-    const netFlowUSD = liquidity.monthReceiptsUSD - liquidity.monthDisbursedUSD;
-
-    // Projected performance for the month
     const projectedNetFlowBDT = netFlowBDT - monthlyLiabilitiesBDT;
 
     els.repNetFlow.textContent = fmtBDTNoCents(liquidity.closingBDT);
@@ -2017,9 +2026,10 @@ function exportCSV(type) {
         }
     });
 
+    const escapeCSV = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const csvContent = [
-        headers.join(','),
-        ...rows.map(r => r.join(','))
+        headers.map(escapeCSV).join(','),
+        ...rows.map(r => r.map(escapeCSV).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2050,12 +2060,18 @@ function downloadFullBackup() {
     showToast('Backup downloaded successfully', 'success');
 }
 
-function renderProjectedCashflow(transactions, liquidity, settings) {
+function renderProjectedCashflow(transactions, liquidity, selectedMonth) {
     const container = document.getElementById('cashflowSummary');
     if (!container) return;
 
-    // Calculate Liabilities (Pending & Hold OUTGOING - User requested to include Hold in shortage/activity)
-    const pendingOutTxs = transactions.filter(t => t.type === 'outgoing' && (t.status === 'pending' || t.status === 'hold'));
+    const txMonth = t => t.accountingMonth || t.date.slice(0, 7);
+
+    // Only selected month's pending/hold outgoing
+    const pendingOutTxs = transactions.filter(t =>
+        t.type === 'outgoing' &&
+        (t.status === 'pending' || t.status === 'hold') &&
+        txMonth(t) === selectedMonth
+    );
     let pendingOutBDT = 0;
     let pendingOutUSD = 0;
     pendingOutTxs.forEach(t => {
@@ -2063,8 +2079,12 @@ function renderProjectedCashflow(transactions, liquidity, settings) {
         pendingOutUSD += parseFloat(t.amountUSD || 0);
     });
 
-    // Calculate Projected Receivables (Held INCOMING)
-    const heldIncTxs = transactions.filter(t => t.type === 'incoming' && t.status === 'hold');
+    // Only selected month's held incoming
+    const heldIncTxs = transactions.filter(t =>
+        t.type === 'incoming' &&
+        t.status === 'hold' &&
+        txMonth(t) === selectedMonth
+    );
     let heldIncBDT = 0;
     let heldIncUSD = 0;
     heldIncTxs.forEach(t => {
@@ -2082,8 +2102,6 @@ function renderProjectedCashflow(transactions, liquidity, settings) {
     // Determine Status
     const isShortage = projectedBDT < 0;
     const statusLabel = isShortage ? 'Cash Shortage' : 'Cash Surplus';
-    const statusColor = isShortage ? 'var(--danger)' : 'var(--brand-primary)';
-    const statusBg = isShortage ? 'var(--danger-bg)' : 'var(--brand-light)';
 
     // Render Summary Cards
     container.innerHTML = `
@@ -2215,21 +2233,21 @@ function openBeneficiaryModal(ben = null) {
     }
 }
 
-function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth = '', filterYear = '2026') {
+function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth = '', filterYear = String(new Date().getFullYear())) {
     const q = query.toLowerCase().trim();
+    const txMonth = t => t.accountingMonth || t.date.slice(0, 7);
 
     // Sort by date descending
     const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
 
     let filtered = sorted;
 
-    // 1. Apply Month/Year Filter if selected
+    // 1. Apply Month/Year Filter — use accountingMonth for consistency
     if (filterMonth) {
         const targetPrefix = `${filterYear}-${filterMonth}`;
-        filtered = filtered.filter(t => t.date.startsWith(targetPrefix));
+        filtered = filtered.filter(t => txMonth(t) === targetPrefix);
     } else if (filterYear) {
-        // If only year is selected (or default 2026)
-        filtered = filtered.filter(t => t.date.startsWith(filterYear));
+        filtered = filtered.filter(t => txMonth(t).startsWith(filterYear));
     }
 
     // 2. Apply Search Query
@@ -2278,9 +2296,7 @@ function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth
     });
 }
 
-/**
- * Generates a bank-style CSV statement for a specific month
- */
+// Generates a bank-style CSV statement for a specific month
 function downloadBankStatement(transactions, beneficiaries, month, year) {
     try {
         console.log('Statement download triggered:', { month, year, txCount: transactions.length });
@@ -2362,3 +2378,5 @@ function downloadBankStatement(transactions, beneficiaries, month, year) {
         showToast('System Error: File could not be generated.', 'error');
     }
 }
+
+*/

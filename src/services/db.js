@@ -80,6 +80,7 @@ class GlobalDatabase {
     async addTransaction(tx) { return this.addDocument('transactions', tx); }
     async updateTransaction(id, updates) { return this.updateDocument('transactions', id, updates); }
     async updateTransactionStatus(id, status) { return this.updateDocument('transactions', id, { status }); }
+    async deleteTransaction(id) { return this.deleteDocument('transactions', id); }
 
     async getSettings() {
         await this.initPromise;

@@ -16,7 +16,9 @@ class Store {
                 monthDisbursedUSD: 0,
                 monthDisbursedBDT: 0,
                 closingUSD: 0,
-                closingBDT: 0
+                closingBDT: 0,
+                averageBuyRate: 0,
+                impliedRate: 0
             },
             sortConfig: {
                 field: 'date',
@@ -25,7 +27,6 @@ class Store {
             isOnline: false,
             isLoading: true
         };
-        this._firstDataReceived = false;
         this.listeners = [];
         this.init();
     }
@@ -44,21 +45,23 @@ class Store {
         this.setupSubscriptions();
     }
 
-    _markDataReceived() {
-        if (!this._firstDataReceived) {
-            this._firstDataReceived = true;
-            this.state.isLoading = false;
-        }
-    }
-
     setupSubscriptions() {
+        // Track all 4 subscriptions — only stop loading when ALL have responded
+        const ready = { settings: false, transactions: false, beneficiaries: false, sources: false };
+        const checkAllReady = () => {
+            if (Object.values(ready).every(Boolean)) {
+                this.state.isLoading = false;
+            }
+        };
+
         // 1. Settings
         db.subscribeToSettings((settings) => {
             if (settings) {
                 this.state.settings = settings;
                 this.calculateLiquidity();
             }
-            this._markDataReceived();
+            ready.settings = true;
+            checkAllReady();
             this.notify();
         });
 
@@ -66,7 +69,8 @@ class Store {
         db.subscribeToCollection('transactions', (data) => {
             this.state.transactions = data;
             this.calculateLiquidity();
-            this._markDataReceived();
+            ready.transactions = true;
+            checkAllReady();
             this.notify();
         });
 
@@ -74,7 +78,8 @@ class Store {
         db.subscribeToCollection('beneficiaries', (data) => {
             this.state.beneficiaries = data;
             this.state.beneficiaries.sort((a, b) => (a.nickname || a.name || '').localeCompare(b.nickname || b.name || ''));
-            this._markDataReceived();
+            ready.beneficiaries = true;
+            checkAllReady();
             this.notify();
         });
 
@@ -82,7 +87,8 @@ class Store {
         db.subscribeToCollection('sources', (data) => {
             this.state.sources = data;
             this.state.sources.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            this._markDataReceived();
+            ready.sources = true;
+            checkAllReady();
             this.notify();
         });
     }
@@ -115,10 +121,8 @@ class Store {
     }
 
     calculateLiquidity() {
-        const { openingBalanceUSD, openingBalanceBDT } = this.state.settings;
         const selectedMonth = this.state.selectedMonth; // "YYYY-MM"
 
-        // Global Opening Balance (Base) - Always ensure these are valid numbers
         const globalOpenUSD = parseFloat(this.state.settings?.openingBalanceUSD) || 0;
         const globalOpenBDT = parseFloat(this.state.settings?.openingBalanceBDT) || 0;
 
@@ -145,10 +149,9 @@ class Store {
             const amountUSD = Number(tx.amountUSD) || 0;
             const amountBDT = Number(tx.amountBDT) || 0;
 
-            // Weighted average: use tx.rate if available, otherwise derive from BDT/USD
-            // Only count 'receive' with USD > 0 and a valid rate
+            // Weighted average — only transactions up to (and including) selected month
             if (tx.type === 'incoming' && tx.status !== 'hold' && tx.subType !== 'return'
-                && amountUSD > 0) {
+                && amountUSD > 0 && txMonth <= selectedMonth) {
                 const txRate = Number(tx.rate) > 0
                     ? Number(tx.rate)
                     : (amountBDT > 0 ? amountBDT / amountUSD : 0);
@@ -218,6 +221,12 @@ class Store {
             averageBuyRate = lastIncomingTx ? lastIncomingTx.rate : (this.state.settings.lastRate || 0);
         }
 
+        // Implied rate = actual BDT/USD ratio of current balance (for dashboard display)
+        // Falls back to avg buy rate when either side is zero or negative
+        const impliedRate = (closingUSD > 0 && closingBDT > 0)
+            ? closingBDT / closingUSD
+            : averageBuyRate;
+
         this.state.liquidity = {
             openingUSD,
             openingBDT,
@@ -227,7 +236,8 @@ class Store {
             monthDisbursedBDT,
             closingUSD,
             closingBDT,
-            averageBuyRate
+            averageBuyRate,
+            impliedRate
         };
     }
 
@@ -242,10 +252,9 @@ class Store {
         await db.addTransaction(tx);
         // Listener will update state
 
-        // Update last known rate if present - this triggers a setting save
-        if (tx.rate) {
+        // Only save lastRate from incoming receipts — outgoing rate is irrelevant for avg rate fallback
+        if (tx.type === 'incoming' && tx.subType !== 'return' && tx.rate) {
             const newSettings = { ...this.state.settings, lastRate: tx.rate };
-            // Ensure we don't cause a loop, but saveSettings updates DB which updates listener
             db.saveSettings(newSettings);
         }
     }
@@ -257,6 +266,13 @@ class Store {
 
     async updateTransaction(id, updates) {
         await db.updateTransaction(id, updates);
+        // Listener will update state
+    }
+
+    async deleteTransaction(id) {
+        const tx = this.state.transactions.find(t => t.id === id);
+        if (tx?.status === 'paid') throw new Error('Paid records cannot be deleted.');
+        await db.deleteTransaction(id);
         // Listener will update state
     }
 

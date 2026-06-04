@@ -136,8 +136,9 @@ header {
     justify-content: space-between;
     align-items: center;
     background: #ffffff;
-    padding: 1rem 2rem;
+    padding: 0.875rem 2rem;
     border-bottom: 1px solid var(--border-light);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
     position: sticky;
     top: 0;
     z-index: 50;
@@ -145,18 +146,15 @@ header {
     transition: var(--transition-smooth);
 }
 
-header:hover {
-    background: #ffffff;
-}
-
 h1 {
     font-family: var(--font-heading);
-    font-size: 2.25rem;
+    font-size: 1.875rem;
     font-weight: 900;
     color: var(--text-primary);
     letter-spacing: -0.04em;
     line-height: 1;
     margin: 0;
+    white-space: nowrap;
     background: linear-gradient(135deg, #1dbf73 0%, #19a463 100%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -166,12 +164,70 @@ h1 {
 .header-left {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1.75rem;
 }
 
 .header-right {
     display: flex;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.header-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border-light);
+    flex-shrink: 0;
+}
+
+/* Status Badge V2 — Complete System */
+.status-badge-v2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border: 1px solid transparent;
+}
+
+.status-badge-v2.pending {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+    border-color: rgba(255, 179, 62, 0.25);
+}
+
+.status-badge-v2.success {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: rgba(29, 191, 115, 0.25);
+}
+
+.status-badge-v2.danger {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: rgba(247, 64, 64, 0.2);
+}
+
+.status-badge-v2.surplus {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: rgba(29, 191, 115, 0.25);
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+}
+
+.status-badge-v2.shortage {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: rgba(247, 64, 64, 0.2);
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
 }
 
 /* --- Smart Month Navigator --- */
@@ -778,10 +834,15 @@ tr:hover .copy-amount-btn {
     border-color: transparent;
 }
 
-.icon-btn.delete-btn:hover {
+.icon-btn.delete-btn:hover,
+.icon-btn.delete-tx-btn:hover {
     color: var(--danger);
     background: var(--danger-bg);
     border-color: transparent;
+}
+
+.icon-btn.delete-tx-btn {
+    color: var(--text-muted);
 }
 
 /* Status Badges */
@@ -1257,12 +1318,23 @@ tbody tr.status-pending {
 .status-badge-v2.success::before {
     content: '';
     display: inline-block;
-    width: 8px;
-    height: 8px;
-    background: #1dbf73;
+    width: 6px;
+    height: 6px;
+    background: var(--success);
     border-radius: 50%;
-    margin-right: 8px;
+    flex-shrink: 0;
     animation: pulse-soft 2s infinite;
+}
+
+.status-badge-v2.pending::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--warning);
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse-soft 1.2s infinite;
 }
 
 /* Responsive & Mobile Optimization (Fiverr App Style) */
@@ -1887,7 +1959,8 @@ tbody tr.status-pending {
     .header-right .btn-secondary,
     .header-right #openReportModalBtn,
     .header-right #logoutBtn,
-    .header-right #openSettingsBtn {
+    .header-right #openSettingsBtn,
+    .header-divider {
         display: none !important;
     }
 
@@ -2108,6 +2181,79 @@ tbody tr.status-pending {
     padding-bottom: 0.75rem;
     border-bottom: 1px dashed var(--border-light);
     color: var(--brand-primary);
+}
+
+/* --- Modal Balance Strip (Money In / Money Out) --- */
+.modal-balance-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--brand-light);
+    border: 1px solid rgba(29, 191, 115, 0.2);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.8rem;
+}
+
+.strip-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    margin-right: 0.25rem;
+}
+
+.strip-usd { color: var(--text-secondary); font-weight: 700; }
+.strip-bdt { color: var(--brand-primary); font-weight: 800; }
+.strip-sep { color: var(--border-hover); }
+
+/* --- Money Out Payment Preview Card --- */
+.payment-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1.25rem;
+    margin-top: 1rem;
+    font-size: 0.88rem;
+    flex-wrap: wrap;
+}
+
+.payment-preview-card.preview-warning {
+    background: #fff8f8;
+    border-color: rgba(247, 64, 64, 0.25);
+}
+
+.ppreview-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+}
+
+.ppreview-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.ppreview-row span:last-child {
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.ppreview-arrow {
+    font-size: 1.1rem;
+    color: var(--border-hover);
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
 /* --- Print Optimization for CEO Report --- */
