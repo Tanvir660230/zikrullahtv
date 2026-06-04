@@ -37,10 +37,8 @@ export function render(state) {
     if (els.hintRateVal) els.hintRateVal.textContent = displayRate.toFixed(2);
 
     // Balance strips in Money In / Money Out modals
-    const incStripUSD = document.getElementById('incStripUSD');
-    const incStripBDT = document.getElementById('incStripBDT');
-    if (incStripUSD) incStripUSD.textContent = fmtUSD(closingUSD);
-    if (incStripBDT) incStripBDT.textContent = fmtBDT(closingBDT);
+    if (els.incStripUSD) els.incStripUSD.textContent = fmtUSD(closingUSD);
+    if (els.incStripBDT) els.incStripBDT.textContent = fmtBDT(closingBDT);
 
     if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(closingUSD);
     if (els.outLiqBDT) els.outLiqBDT.textContent = fmtBDT(closingBDT);

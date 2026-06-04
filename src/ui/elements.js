@@ -94,6 +94,10 @@ export const els = {
     repNetFlowUSD: document.getElementById('repNetFlowUSD'),
     repStatusBadge: document.getElementById('repStatusBadge'),
 
+    // Money In modal balance strip
+    incStripUSD: document.getElementById('incStripUSD'),
+    incStripBDT: document.getElementById('incStripBDT'),
+
     // Money In Form
     incomingForm: document.getElementById('incomingForm'),
     incDate: document.getElementById('incDate'),

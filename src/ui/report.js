@@ -80,11 +80,11 @@ export function generateMonthlyReport() {
 
     const sortedSources = Object.entries(sourceGroups).sort((a, b) => a[0].localeCompare(b[0]));
     els.repInBody.innerHTML = sortedSources.map(([name, data]) => `
-        <tr style="border-bottom:1px solid var(--border-color);">
+        <tr style="border-bottom:1px solid var(--border-light);">
             <td style="font-weight:500;font-size:0.95rem;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">
-                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--success-color);margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
+                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
             </td>
-            <td class="text-right" style="color:var(--success-dark);font-weight:500;">${fmtUSD(data.usd)}</td>
+            <td class="text-right" style="color:var(--success-text);font-weight:500;">${fmtUSD(data.usd)}</td>
             <td class="text-right" style="font-weight:600;color:#111;">${fmtBDT(data.bdt)}</td>
         </tr>
     `).join('');
@@ -97,11 +97,11 @@ export function generateMonthlyReport() {
     sortedPendingBens.forEach(([, d]) => { pendingTotalBDT += d.bdt; pendingTotalUSD += d.usd; });
 
     const paidRows = sortedBens.map(([name, data]) => `
-        <tr style="border-bottom:1px solid var(--border-color);">
+        <tr style="border-bottom:1px solid var(--border-light);">
             <td style="font-weight:500;font-size:0.95rem;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">
-                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--danger-color);margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
+                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
             </td>
-            <td class="text-right" style="color:var(--danger-color);font-weight:500;">${fmtUSD(data.usd)}</td>
+            <td class="text-right" style="color:var(--danger-text);font-weight:500;">${fmtUSD(data.usd)}</td>
             <td class="text-right" style="font-weight:600;color:#111;">${fmtBDT(data.bdt)}</td>
         </tr>
     `).join('');
@@ -223,7 +223,7 @@ export function downloadBankStatement(transactions, beneficiaries, month, year) 
 
         if (month) {
             const targetPrefix = `${year}-${month}`;
-            filtered = transactions.filter(t => t.date.startsWith(targetPrefix)).sort((a, b) => a.date.localeCompare(b.date));
+            filtered = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === targetPrefix).sort((a, b) => a.date.localeCompare(b.date));
             title = `Account Statement - ${month}/${year}`;
             fileName = `statement_${year}_${month}.csv`;
         } else {

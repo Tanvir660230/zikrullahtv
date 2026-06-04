@@ -1,4 +1,4 @@
-import { store } from './store/store.js';
+﻿import { store } from './store/store.js';
 import { fmtUSD, fmtBDT, showToast, debounce } from './utils/utils.js';
 
 // --- Modular Imports (New split structure) ---
@@ -9,185 +9,69 @@ import { setupSmartCalc, editTransaction, cloneTransaction, openBeneficiaryModal
 import { generateMonthlyReport, exportCEOReportCSV, exportCSV, downloadFullBackup, downloadBankStatement } from './ui/report.js';
 import { copyToClipboard } from './utils/clipboard.js';
 
-// --- OLD CODE BELOW — kept for reference, will be removed after split is confirmed working ---
+// --- Custom Dialog (replaces browser confirm/prompt) ---
+function showConfirm(message, { title = 'Confirm', okLabel = 'Confirm', isDanger = false } = {}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmInputWrapper').style.display = 'none';
+        const okBtn = document.getElementById('confirmOkBtn');
+        okBtn.textContent = okLabel;
+        okBtn.className = isDanger ? 'btn-primary danger-confirm' : 'btn-primary';
+        modal.classList.add('open');
 
-/* MOVED TO: src/ui/elements.js
-const els = {
-    // Header - Month Nav
-    prevMonthBtn: document.getElementById('prevMonthBtn'),
-    nextMonthBtn: document.getElementById('nextMonthBtn'),
-    monthSelect: document.getElementById('monthSelect'),
-    yearInput: document.getElementById('yearInput'),
+        const ok = () => { cleanup(); resolve(true); };
+        const cancel = () => { cleanup(); resolve(false); };
 
-    settingsBtn: document.getElementById('openSettingsBtn'),
+        function cleanup() {
+            modal.classList.remove('open');
+            okBtn.removeEventListener('click', ok);
+            document.getElementById('confirmCancelBtn').removeEventListener('click', cancel);
+        }
 
-    // Dashboard
-    liqUSD: document.getElementById('liqUSD'),
-    liqBDT: document.getElementById('liqBDT'),
-    monthReceipts: document.getElementById('monthReceipts'),
-    monthReceiptsBDT: document.getElementById('monthReceiptsBDT'),
-    monthDisbursements: document.getElementById('monthDisbursements'),
-    monthDisbursementsBDT: document.getElementById('monthDisbursementsBDT'),
-    outLiqUSD: document.getElementById('outLiqUSD'),
-    outLiqBDT: document.getElementById('outLiqBDT'),
-    avgBuyRate: document.getElementById('avgBuyRate'),
+        okBtn.addEventListener('click', ok);
+        document.getElementById('confirmCancelBtn').addEventListener('click', cancel);
+    });
+}
 
-    // Stats
-    statsPendingCount: document.getElementById('statsPendingCount'),
-    statsPendingAmount: document.getElementById('statsPendingAmount'),
-    statsPaidCount: document.getElementById('statsPaidCount'),
-    statsPaidAmount: document.getElementById('statsPaidAmount'),
-    statsReceiversCount: document.getElementById('statsReceiversCount'),
+function showPrompt(message, { title = 'Enter Value', placeholder = '', defaultValue = '' } = {}) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        const wrapper = document.getElementById('confirmInputWrapper');
+        const input = document.getElementById('confirmInput');
+        wrapper.style.display = 'block';
+        input.placeholder = placeholder;
+        input.value = defaultValue;
+        const okBtn = document.getElementById('confirmOkBtn');
+        okBtn.textContent = 'OK';
+        okBtn.className = 'btn-primary';
+        modal.classList.add('open');
+        setTimeout(() => input.focus(), 100);
 
-    // Navigation
-    navDashboard: document.getElementById('navDashboard'),
-    navMoneyIn: document.getElementById('navMoneyIn'),
-    navMoneyOut: document.getElementById('navMoneyOut'),
+        const ok = () => { cleanup(); resolve(input.value.trim() || null); };
+        const cancel = () => { cleanup(); resolve(null); };
+        const keydown = (e) => { if (e.key === 'Enter') ok(); };
 
-    // Views
-    dashboardView: document.getElementById('dashboardView'),
-    incomingView: document.getElementById('incomingTab'), // Reusing ID for now or renamed in HTML? HTML kept IDs but logic treats them as views
-    outgoingView: document.getElementById('outgoingTab'),
+        function cleanup() {
+            modal.classList.remove('open');
+            okBtn.removeEventListener('click', ok);
+            document.getElementById('confirmCancelBtn').removeEventListener('click', cancel);
+            document.removeEventListener('keydown', keydown);
+        }
 
-    // Incoming
-    incLiqUSD: document.getElementById('incLiqUSD'),
-    incLiqBDT: document.getElementById('incLiqBDT'),
-    incSearch: document.getElementById('incSearch'),
-    exportIncBtn: document.getElementById('exportIncBtn'),
-    openIncModalBtn: document.getElementById('openIncModalBtn'),
-    incTableBody: document.querySelector('#incomingTable tbody'),
-
-    // Outgoing
-    outSearch: document.getElementById('outSearch'),
-    exportOutBtn: document.getElementById('exportOutBtn'),
-    openOutModalBtn: document.getElementById('openOutModalBtn'),
-    outTableBody: document.querySelector('#outgoingTable tbody'),
-
-    // Management Buttons
-    manageSourcesBtn: document.getElementById('manageSourcesBtn'),
-    manageBeneficiariesBtn: document.getElementById('manageBeneficiariesBtn'),
-    openAddBenModalBtn: document.getElementById('openAddBenModalBtn'),
-
-    // Modals
-    incomingModal: document.getElementById('incomingModal'),
-    closeIncModal: document.getElementById('closeIncModal'),
-    outgoingModal: document.getElementById('outgoingModal'),
-    closeOutModal: document.getElementById('closeOutModal'),
-    settingsModal: document.getElementById('settingsModal'),
-    closeSettingsModal: document.getElementById('closeSettingsModal'),
-    sourcesModal: document.getElementById('sourcesModal'),
-    closeSourcesModal: document.getElementById('closeSourcesModal'),
-    beneficiariesListModal: document.getElementById('beneficiariesListModal'),
-    closeBenListModal: document.getElementById('closeBenListModal'),
-    beneficiaryModal: document.getElementById('beneficiaryModal'),
-    closeBenModal: document.getElementById('closeBenModal'),
-    reportModal: document.getElementById('reportModal'),
-    closeReportModal: document.getElementById('closeReportModal'),
-    downloadReportBtn: document.getElementById('downloadReportBtn'),
-
-    // Report Elements
-    downloadReportPdfBtn: document.getElementById('downloadReportPdfBtn'),
-    openReportModalBtn: document.getElementById('openReportModalBtn'),
-    repMonth: document.getElementById('repMonth'),
-    repGenDate: document.getElementById('repGenDate'),
-    repOpening: document.getElementById('repOpening'),
-    repOpeningUSD: document.getElementById('repOpeningUSD'),
-    repTotalIn: document.getElementById('repTotalIn'),
-    repTotalInUSD: document.getElementById('repTotalInUSD'),
-    repTotalOut: document.getElementById('repTotalOut'),
-    repTotalOutUSD: document.getElementById('repTotalOutUSD'),
-    repClosing: document.getElementById('repClosing'),
-    repClosingUSD: document.getElementById('repClosingUSD'),
-    repClosingCard: document.getElementById('repClosingCard'),
-    repInBody: document.getElementById('repInBody'),
-    repOutBody: document.getElementById('repOutBody'),
-    repInTotal: document.getElementById('repInTotal'),
-    repInTotalUSD: document.getElementById('repInTotalUSD'),
-    repOutTotal: document.getElementById('repOutTotal'),
-    repOutTotalUSD: document.getElementById('repOutTotalUSD'),
-    repNetFlow: document.getElementById('repNetFlow'),
-    repNetFlowUSD: document.getElementById('repNetFlowUSD'),
-    repStatusBadge: document.getElementById('repStatusBadge'),
-
-    // Forms
-    incomingForm: document.getElementById('incomingForm'),
-    incDate: document.getElementById('incDate'),
-    incAccMonth: document.getElementById('incAccMonth'),
-    incId: document.getElementById('incId'),
-    incType: document.getElementById('incType'),
-    incSource: document.getElementById('incSource'),
-    incUSD: document.getElementById('incUSD'),
-    incBDT: document.getElementById('incBDT'),
-    incRate: document.getElementById('incRate'),
-
-    outgoingForm: document.getElementById('outgoingForm'),
-    outDate: document.getElementById('outDate'),
-    outAccMonth: document.getElementById('outAccMonth'),
-    outId: document.getElementById('outId'),
-    outBeneficiary: document.getElementById('outBeneficiary'),
-    outUSD: document.getElementById('outUSD'),
-    outBDT: document.getElementById('outBDT'),
-    outRate: document.getElementById('outRate'),
-    hintRateVal: document.getElementById('hintRateVal'),
-    applyAvgRateBtn: document.getElementById('applyAvgRateBtn'),
-    bankPreview: document.getElementById('bankPreview'),
-    prevBankName: document.getElementById('prevBankName'),
-    prevAccNo: document.getElementById('prevAccNo'),
-    prevDisplayName: document.getElementById('prevDisplayName'),
-
-    // Source Management Form
-    addSourceForm: document.getElementById('addSourceForm'),
-    sourcesList: document.getElementById('sourcesList'),
-
-    // Beneficiary Management
-    beneficiariesTableBody: document.querySelector('#beneficiariesTable tbody'),
-    benModalTitle: document.getElementById('benModalTitle'),
-    benId: document.getElementById('benId'),
-    benNickname: document.getElementById('benNickname'),
-    benAccountName: document.getElementById('benAccountName'),
-    benBankName: document.getElementById('benBankName'),
-    benAccountNo: document.getElementById('benAccountNo'),
-    benBranch: document.getElementById('benBranch'),
-
-    // Settings Form
-    settingsForm: document.getElementById('settingsForm'),
-    setOpeningUSD: document.getElementById('setOpeningUSD'),
-    setOpeningBDT: document.getElementById('setOpeningBDT'),
-    openingBalanceSection: document.getElementById('openingBalanceSection'),
-    clearDataBtn: document.getElementById('clearDataBtn'),
-    downloadBackupBtn: document.getElementById('downloadBackupBtn'),
-
-    // Beneficiary Form
-    benForm: document.getElementById('beneficiaryForm'),
-
-    // History Modal
-    historyModal: document.getElementById('historyModal'),
-    closeHistoryModal: document.getElementById('closeHistoryModal'),
-    openHistoryModalBtn: document.getElementById('openHistoryModalBtn'),
-    sidebarHistoryBtn: document.getElementById('sidebarHistoryBtn'),
-    histSearch: document.getElementById('histSearch'),
-    histMonth: document.getElementById('histMonth'),
-    histYear: document.getElementById('histYear'),
-    downloadBankStatementBtn: document.getElementById('downloadBankStatementBtn'),
-    historyTableBody: document.getElementById('historyTableBody'),
-
-    // Login
-    loginModal: document.getElementById('loginModal'),
-    loginForm: document.getElementById('loginForm'),
-    loginPassword: document.getElementById('loginPassword'),
-    logoutBtn: document.getElementById('logoutBtn'),
-    settingsHeaderTitle: document.getElementById('settingsHeaderTitle'),
-
-    // Sidebar
-    mobileMenuBtn: document.getElementById('mobileMenuBtn'),
-    mobileSidebar: document.getElementById('mobileSidebar'),
-    mobileSidebarOverlay: document.getElementById('mobileSidebarOverlay'),
-    closeSidebarBtn: document.getElementById('closeSidebarBtn'),
-    sidebarReportBtn: document.getElementById('sidebarReportBtn'),
-    sidebarLogoutBtn: document.getElementById('sidebarLogoutBtn'),
-    sidebarSettingsBtn: document.getElementById('sidebarSettingsBtn')
-};
-*/
+        okBtn.addEventListener('click', ok);
+        document.getElementById('confirmCancelBtn').addEventListener('click', cancel);
+        document.addEventListener('keydown', keydown);
+    });
+}
+import { render, renderSourcesList, renderBeneficiariesList } from './ui/render.js';
+import { renderTables, renderHistoryTable, populateHistYears } from './ui/tables.js';
+import { setupSmartCalc, editTransaction, cloneTransaction, openBeneficiaryModal } from './ui/forms.js';
+import { generateMonthlyReport, exportCEOReportCSV, exportCSV, downloadFullBackup, downloadBankStatement } from './ui/report.js';
+import { copyToClipboard } from './utils/clipboard.js';
 
 // --- Responsive Layout ---
 function setupResponsiveLayout() {
@@ -421,6 +305,59 @@ function setupEventListeners() {
     els.navMoneyIn?.addEventListener('click', () => updateNav('money-in'));
     els.navMoneyOut?.addEventListener('click', () => updateNav('money-out'));
 
+    // --- Escape key closes any open modal ---
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+            closeSidebar();
+        }
+        // N key shortcut — opens new transaction modal for current tab
+        if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey) {
+            const tag = document.activeElement?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            if (document.querySelector('.modal-overlay.open')) return;
+            if (els.navMoneyIn.classList.contains('active')) els.openIncModalBtn?.click();
+            else if (els.navMoneyOut.classList.contains('active')) els.openOutModalBtn?.click();
+        }
+    });
+
+    // --- Search Clear Buttons ---
+    const setupSearchClear = (input, clearBtn) => {
+        if (!input || !clearBtn) return;
+        input.addEventListener('input', () => {
+            clearBtn.style.display = input.value ? 'block' : 'none';
+        });
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            clearBtn.style.display = 'none';
+            input.dispatchEvent(new Event('input'));
+            input.focus();
+        });
+    };
+    setupSearchClear(document.getElementById('incSearch'), document.getElementById('incSearchClear'));
+    setupSearchClear(document.getElementById('outSearch'), document.getElementById('outSearchClear'));
+
+    // --- Number Format Hints ---
+    const addFormatHint = (input, isBDT = false) => {
+        const hint = document.createElement('div');
+        hint.className = 'format-hint';
+        input.parentNode.appendChild(hint);
+        input.addEventListener('input', () => {
+            const val = parseFloat(input.value);
+            if (val > 0) {
+                hint.textContent = isBDT
+                    ? '৳ ' + new Intl.NumberFormat('en-IN').format(val)
+                    : '$ ' + new Intl.NumberFormat('en-US').format(val);
+            } else {
+                hint.textContent = '';
+            }
+        });
+    };
+    addFormatHint(els.incUSD, false);
+    addFormatHint(els.incBDT, true);
+    addFormatHint(els.outUSD, false);
+    addFormatHint(els.outBDT, true);
+
     // --- Login ---
     els.loginForm?.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -435,11 +372,9 @@ function setupEventListeners() {
         }
     });
 
-    els.logoutBtn?.addEventListener('click', () => {
-        if (confirm('Are you sure you want to log out?')) {
-            localStorage.removeItem('isAuth');
-            window.location.reload();
-        }
+    els.logoutBtn?.addEventListener('click', async () => {
+        const ok = await showConfirm('Are you sure you want to log out?', { title: 'Logout', okLabel: 'Logout', isDanger: true });
+        if (ok) { localStorage.removeItem('isAuth'); window.location.reload(); }
     });
 
     // --- Secret Reset Logic ---
@@ -454,11 +389,13 @@ function setupEventListeners() {
     });
 
     els.clearDataBtn?.addEventListener('click', async () => {
-        const confirmCode = prompt('⚠ EXTREME WARNING: This will permanently delete ALL Cloud data.\nTo proceed, type the Master Key (RESET-99):');
-
+        const confirmCode = await showPrompt(
+            "EXTREME WARNING: This will permanently delete ALL Cloud data.\nType the Master Key to confirm:",
+            { title: 'Reset All Data', placeholder: 'Type RESET-99 to confirm' }
+        );
         if (confirmCode === 'RESET-99') {
-            const secondConfirm = confirm('THIS ACTION CANNOT BE UNDONE. Are you 100% sure?');
-            if (secondConfirm) {
+            const ok = await showConfirm('THIS ACTION CANNOT BE UNDONE. Are you 100% sure?', { title: 'Final Warning', okLabel: 'Yes, Delete Everything', isDanger: true });
+            if (ok) {
                 try {
                     showToast('Wiping database...', 'info');
                     await store.clearAllData();
@@ -472,8 +409,14 @@ function setupEventListeners() {
             showToast('Incorrect Master Key', 'error');
         }
     });
+
     els.monthSelect?.addEventListener('change', updateStoreDate);
-    els.yearInput?.addEventListener('change', updateStoreDate);
+    els.yearInput?.addEventListener('change', () => {
+        let y = parseInt(els.yearInput.value);
+        if (y < 2020) { els.yearInput.value = 2020; }
+        if (y > 2099) { els.yearInput.value = 2099; }
+        updateStoreDate();
+    });
 
     // Smart Nav Arrows
     els.prevMonthBtn?.addEventListener('click', () => changeMonth(-1));
@@ -501,7 +444,7 @@ function setupEventListeners() {
     // --- Modals ---
     // Incoming
     els.openIncModalBtn?.addEventListener('click', () => {
-        // Always reset to Add mode — clear any lingering edit ID
+        // Always reset to Add mode â€” clear any lingering edit ID
         els.incomingForm.reset();
         els.incId.value = '';
         els.incomingModal.classList.add('open');
@@ -526,7 +469,7 @@ function setupEventListeners() {
 
     // Outgoing
     els.openOutModalBtn?.addEventListener('click', () => {
-        // Always reset to Add mode — clear any lingering edit ID
+        // Always reset to Add mode â€” clear any lingering edit ID
         els.outgoingForm.reset();
         els.outId.value = '';
         els.outgoingModal.classList.add('open');
@@ -538,7 +481,7 @@ function setupEventListeners() {
         // Default Date and Month
         els.outDate.value = new Date().toISOString().split('T')[0];
         els.outAccMonth.value = store.state.selectedMonth;
-        // Auto-fill with implied rate (actual BDT/USD ratio — consistent with dashboard)
+        // Auto-fill with implied rate (actual BDT/USD ratio â€” consistent with dashboard)
         const fillRate = store.state.liquidity.impliedRate || store.state.liquidity.averageBuyRate || 0;
         if (fillRate > 0) {
             els.outRate.value = fillRate.toFixed(2);
@@ -606,7 +549,7 @@ function setupEventListeners() {
         });
     }
 
-    // Delegated edit listener for history table — set once to avoid memory leak
+    // Delegated edit listener for history table â€” set once to avoid memory leak
     els.historyTableBody?.addEventListener('click', (e) => {
         const btn = e.target.closest('.edit-tx-btn-hist');
         if (!btn) return;
@@ -644,7 +587,7 @@ function setupEventListeners() {
     });
 
     // Click Outside to Close for all modals
-    [els.incomingModal, els.outgoingModal, els.settingsModal, els.sourcesModal, els.beneficiariesListModal, els.beneficiaryModal, els.reportModal].forEach(modal => {
+    [els.incomingModal, els.outgoingModal, els.settingsModal, els.sourcesModal, els.beneficiariesListModal, els.beneficiaryModal, els.reportModal, els.historyModal].forEach(modal => {
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) modal.classList.remove('open');
@@ -693,7 +636,8 @@ function setupEventListeners() {
         if (!id) return;
 
         if (btn.classList.contains('delete-btn')) {
-            if (confirm('Delete this payer?')) {
+            const ok = await showConfirm('Delete this payer?', { title: 'Delete Payer', okLabel: 'Delete', isDanger: true });
+            if (ok) {
                 try {
                     await store.deleteSource(id);
                 } catch (err) {
@@ -702,7 +646,7 @@ function setupEventListeners() {
             }
         } else if (btn.classList.contains('edit-btn')) {
             const currentName = store.state.sources.find(s => s.id === id)?.name;
-            const newName = prompt('Enter new name:', currentName);
+            const newName = await showPrompt('Enter new payer name:', { title: 'Edit Payer', placeholder: 'Payer name', defaultValue: currentName || '' });
             if (newName && newName !== currentName) {
                 try {
                     await store.updateSource(id, { name: newName });
@@ -768,7 +712,8 @@ function setupEventListeners() {
             openBeneficiaryModal(ben);
         } else if (deleteBtn) {
             const id = deleteBtn.dataset.id;
-            if (confirm('Delete this receiver?')) {
+            const ok = await showConfirm('Delete this receiver?', { title: 'Delete Receiver', okLabel: 'Delete', isDanger: true });
+            if (ok) {
                 try {
                     await store.deleteBeneficiary(id);
                 } catch (err) {
@@ -986,10 +931,6 @@ function setupEventListeners() {
         }
     });
 
-
-
-    // MOVED TO: src/ui/forms.js → editTransaction()
-
     // Source Auto-Fill Rate
     els.incSource?.addEventListener('change', () => {
         const source = els.incSource.value;
@@ -1015,7 +956,7 @@ function setupEventListeners() {
             els.bankPreview.style.display = 'none';
         }
 
-        // 1. Check for Pending/Hold to Merge — only within selected month
+        // 1. Check for Pending/Hold to Merge â€” only within selected month
         const existingUnpaid = store.state.transactions.find(t =>
             String(t.beneficiaryId) === String(benId) &&
             t.type === 'outgoing' &&
@@ -1026,9 +967,9 @@ function setupEventListeners() {
         const fillRate = store.state.liquidity.impliedRate || store.state.liquidity.averageBuyRate || 0;
 
         if (existingUnpaid) {
-            const load = confirm(`Found a pending payment of $${existingUnpaid.amountUSD} / ৳${existingUnpaid.amountBDT} for this beneficiary.\n\nOK = Load and update it\nCancel = Create a new entry`);
+            const load = await showConfirm("Found a pending payment of $${existingUnpaid.amountUSD} / u{09F3}${existingUnpaid.amountBDT} for this receiver.\n\nLoad and update the existing entry?", { title: 'Existing Pending Payment', okLabel: 'Load & Update' });
             if (load) {
-                // MERGE MODE — load stored values directly, no recalculation (avoids corrupting saved data)
+                // MERGE MODE â€” load stored values directly, no recalculation (avoids corrupting saved data)
                 els.outId.value = existingUnpaid.id;
                 els.outUSD.value = existingUnpaid.amountUSD;
                 els.outBDT.value = existingUnpaid.amountBDT;
@@ -1086,7 +1027,7 @@ function setupEventListeners() {
         // 2a. Fix Unknown Name
         if (e.target.closest('.fix-name-btn')) {
             const btn = e.target.closest('.fix-name-btn');
-            const newName = prompt('Enter receiver name:', '');
+            const newName = await showPrompt('Enter receiver name for this transaction:', { title: 'Fix Receiver Name', placeholder: 'Name' });
             if (newName && newName.trim()) {
                 await store.updateTransaction(btn.dataset.id, { beneficiaryName: newName.trim() });
                 showToast('Name updated', 'success');
@@ -1114,8 +1055,8 @@ function setupEventListeners() {
 
         if (payBtn) {
             const id = payBtn.dataset.id;
-            if (confirm('Mark this transaction as PAID?')) {
-                await store.markAsPaid(id);
+            const ok = await showConfirm('Mark this transaction as PAID?', { title: 'Confirm Payment', okLabel: 'Mark Paid' });
+            if (ok) {
                 showToast('Transaction marked as Paid', 'success');
             }
         } else if (holdBtn) {
@@ -1134,8 +1075,8 @@ function setupEventListeners() {
             const id = deleteTxBtn.dataset.id;
             const tx = store.state.transactions.find(t => t.id === id);
             const label = tx?.beneficiaryName || store.state.beneficiaries.find(b => b.id === tx?.beneficiaryId)?.nickname || 'this transaction';
-            if (confirm(`Delete "${label}"?\n\nThis cannot be undone.`)) {
-                try {
+            const delOk = await showConfirm(Delete "${label}"?\n\nThis cannot be undone., { title: 'Delete Transaction', okLabel: 'Delete', isDanger: true });
+            if (delOk) {
                     await store.deleteTransaction(id);
                     showToast('Transaction deleted', 'success');
                 } catch (err) {
@@ -1144,9 +1085,6 @@ function setupEventListeners() {
             }
         }
     });
-
-    // Logout
-    // Logout logic removed for public access
 
     // Search (Debounced)
     const debouncedRender = debounce(() => renderTables(store.state.transactions, store.state.beneficiaries, store.state.selectedMonth, store.state.sortConfig), 300);
@@ -1157,1226 +1095,3 @@ function setupEventListeners() {
     els.exportIncBtn?.addEventListener('click', () => exportCSV('incoming'));
     els.exportOutBtn?.addEventListener('click', () => exportCSV('outgoing'));
 }
-
-// MOVED TO: src/ui/tables.js → populateHistYears()
-
-// MOVED TO: src/ui/forms.js → setupSmartCalc()
-/* function setupSmartCalc(usdInput, bdtInput, rateInput) {
-    let lastEdited = 'usd'; // Track whether user prefers USD or BDT as source
-
-    // Helper to get values safely, returning null for empty/invalid
-    const getVal = (input) => {
-        const val = input.value.trim();
-        if (!val) return null;
-        const n = parseFloat(val);
-        return isNaN(n) ? null : n;
-    };
-
-    // Helper to set value avoiding "NaN" or "Infinity"
-    const setVal = (input, val) => {
-        if (!isFinite(val) || isNaN(val) || val === null) return;
-        input.value = val.toFixed(2);
-    };
-
-    const calculate = (source) => {
-        const usd = getVal(usdInput);
-        const bdt = getVal(bdtInput);
-        const rate = getVal(rateInput);
-
-        // Scenario: User changes USD or just typed it
-        if (source === 'usd') {
-            lastEdited = 'usd';
-            // Update BDT if we have Rate
-            if (usd !== null && rate !== null) {
-                setVal(bdtInput, usd * rate);
-            }
-            // Derive Rate if we have BDT
-            else if (usd !== null && bdt !== null && usd !== 0) {
-                setVal(rateInput, bdt / usd);
-            }
-        }
-
-        // Scenario: User changes BDT
-        else if (source === 'bdt') {
-            lastEdited = 'bdt';
-            // Update USD if we have Rate
-            if (bdt !== null && rate !== null && rate !== 0) {
-                setVal(usdInput, bdt / rate);
-            }
-            // Derive Rate if we have USD
-            else if (bdt !== null && usd !== null && usd !== 0) {
-                setVal(rateInput, bdt / usd);
-            }
-        }
-
-        // Scenario: User changes Rate manually
-        else if (source === 'rate-manual') {
-            // Respect the user's intent: update the field they AREN'T currently focused on/last edited
-            if (lastEdited === 'bdt' && bdt !== null && rate !== 0) {
-                setVal(usdInput, bdt / rate);
-            } else if (usd !== null) {
-                setVal(bdtInput, usd * rate);
-            }
-        }
-    };
-
-    // Debounce is NOT needed for simple arithmetic, removing it for better responsiveness
-
-    // Add Event Listeners
-    usdInput.addEventListener('input', () => calculate('usd'));
-    bdtInput.addEventListener('input', () => calculate('bdt'));
-    rateInput.addEventListener('input', () => calculate('rate-manual'));
-
-    // Track intent via click/focus
-    usdInput.addEventListener('focus', () => lastEdited = 'usd');
-    bdtInput.addEventListener('focus', () => lastEdited = 'bdt');
-    usdInput.addEventListener('click', () => lastEdited = 'usd');
-    bdtInput.addEventListener('click', () => lastEdited = 'bdt');
-}
-*/
-
-// MOVED TO: src/ui/render.js → render(), renderSourcesList(), renderBeneficiariesList(), calculatePaymentSummary(), renderProjectedCashflow()
-// MOVED TO: src/ui/tables.js → renderTables(), renderHistoryTable()
-// MOVED TO: src/ui/report.js → generateMonthlyReport(), exportCEOReportCSV(), exportCSV(), downloadFullBackup(), downloadBankStatement()
-// MOVED TO: src/utils/clipboard.js → copyToClipboard(), fallbackCopyTextToClipboard()
-// MOVED TO: src/ui/forms.js → cloneTransaction(), openBeneficiaryModal()
-
-/* OLD IMPLEMENTATIONS — remove after split confirmed working
-
-const SPINNER = '<span class="val-spinner"></span>';
-
-function render(state) {
-    // Show loading spinner on all balance fields while Firebase is connecting
-    if (state.isLoading) {
-        els.liqUSD.innerHTML = SPINNER;
-        els.liqBDT.innerHTML = SPINNER;
-        if (els.avgBuyRate) els.avgBuyRate.innerHTML = SPINNER;
-        if (els.outLiqUSD) els.outLiqUSD.innerHTML = SPINNER;
-        if (els.outLiqBDT) els.outLiqBDT.innerHTML = SPINNER;
-        if (els.incLiqUSD) els.incLiqUSD.innerHTML = SPINNER;
-        if (els.incLiqBDT) els.incLiqBDT.innerHTML = SPINNER;
-        els.monthReceipts.innerHTML = SPINNER;
-        els.monthReceiptsBDT.innerHTML = SPINNER;
-        els.monthDisbursements.innerHTML = SPINNER;
-        els.monthDisbursementsBDT.innerHTML = SPINNER;
-        return;
-    }
-
-    // Render Liquidity & Monthly Stats
-    const {
-        openingUSD, openingBDT,
-        monthReceiptsUSD, monthReceiptsBDT,
-        monthDisbursedUSD, monthDisbursedBDT,
-        closingUSD, closingBDT
-    } = state.liquidity;
-
-    // Display Closing Balance
-    const avgRate = state.liquidity.averageBuyRate || 0;
-    const impliedRate = state.liquidity.impliedRate || 0;
-    els.liqUSD.textContent = fmtUSD(closingUSD);
-    els.liqBDT.textContent = fmtBDT(closingBDT);
-    // Both dashboard and Money Out hint use implied rate — consistent everywhere
-    const displayRate = impliedRate > 0 ? impliedRate : avgRate;
-    if (els.avgBuyRate) els.avgBuyRate.textContent = displayRate.toFixed(2);
-    if (els.hintRateVal) els.hintRateVal.textContent = displayRate.toFixed(2);
-
-    // Update balance strips in Money In / Money Out modals
-    const incStripUSD = document.getElementById('incStripUSD');
-    const incStripBDT = document.getElementById('incStripBDT');
-    if (incStripUSD) incStripUSD.textContent = fmtUSD(closingUSD);
-    if (incStripBDT) incStripBDT.textContent = fmtBDT(closingBDT);
-
-    // Update Mini Stats in Tabs (Both Money In and Money Out)
-    if (els.outLiqUSD) els.outLiqUSD.textContent = fmtUSD(closingUSD);
-    if (els.outLiqBDT) els.outLiqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
-    if (els.incLiqUSD) els.incLiqUSD.textContent = fmtUSD(closingUSD);
-    if (els.incLiqBDT) els.incLiqBDT.textContent = fmtBDT(state.liquidity.closingBDT);
-
-    els.monthReceipts.textContent = fmtUSD(state.liquidity.monthReceiptsUSD);
-    els.monthReceiptsBDT.textContent = fmtBDT(monthReceiptsBDT);
-
-    els.monthDisbursements.textContent = fmtUSD(monthDisbursedUSD);
-    els.monthDisbursementsBDT.textContent = fmtBDT(monthDisbursedBDT);
-
-    // Render Payment Overview Stats
-    const summary = calculatePaymentSummary(state.transactions, state.beneficiaries, state.selectedMonth);
-    els.statsPendingCount.textContent = summary.pendingCount;
-    els.statsPendingAmount.textContent = fmtBDT(summary.pendingAmount);
-    els.statsPaidCount.textContent = summary.paidCount;
-    els.statsPaidAmount.textContent = fmtBDT(summary.paidAmount);
-    els.statsReceiversCount.textContent = state.beneficiaries.length;
-
-    // Update Payers Dropdown
-    const currentSource = els.incSource.value;
-    els.incSource.innerHTML = '';
-
-    // Add default option
-    const defaultOpt = document.createElement('option');
-    defaultOpt.value = "";
-    defaultOpt.textContent = "Select Payer";
-    els.incSource.appendChild(defaultOpt);
-
-    state.sources.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.name;
-        opt.textContent = s.name;
-        els.incSource.appendChild(opt);
-    });
-    if (currentSource) els.incSource.value = currentSource;
-
-    // Update Receivers Dropdown
-    const currentBenVal = els.outBeneficiary.value;
-    els.outBeneficiary.innerHTML = '';
-    const defaultBenOpt = document.createElement('option');
-    defaultBenOpt.value = "";
-    defaultBenOpt.textContent = "Select Receiver";
-    els.outBeneficiary.appendChild(defaultBenOpt);
-
-    state.beneficiaries.forEach(ben => {
-        const opt = document.createElement('option');
-        opt.value = ben.id;
-        opt.textContent = ben.nickname || ben.name;
-        els.outBeneficiary.appendChild(opt);
-    });
-    if (currentBenVal) els.outBeneficiary.value = currentBenVal;
-
-    // Render Tables (Filtered by Month & Sorted)
-    renderTables(state.transactions, state.beneficiaries, state.selectedMonth, state.sortConfig);
-
-    renderProjectedCashflow(state.transactions, state.liquidity, state.selectedMonth);
-
-
-    // Update Modals if open
-    if (els.sourcesModal.classList.contains('open')) renderSourcesList(state.sources);
-    if (els.beneficiariesListModal.classList.contains('open')) renderBeneficiariesList(state.beneficiaries);
-    if (els.reportModal.classList.contains('open')) generateMonthlyReport();
-}
-
-function renderSourcesList(sources) {
-    els.sourcesList.innerHTML = '';
-    sources.forEach(s => {
-        const item = document.createElement('div');
-        item.className = 'list-item';
-
-        const span = document.createElement('span');
-        span.textContent = s.name;
-
-        const actions = document.createElement('div');
-        actions.className = 'actions';
-
-        const editBtn = document.createElement('button');
-        editBtn.className = 'icon-btn edit-btn';
-        editBtn.dataset.id = s.id;
-        editBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>';
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'icon-btn delete-btn';
-        deleteBtn.dataset.id = s.id;
-        deleteBtn.style.color = 'var(--color-danger)';
-        deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>';
-
-        actions.appendChild(editBtn);
-        actions.appendChild(deleteBtn);
-        item.appendChild(span);
-        item.appendChild(actions);
-        els.sourcesList.appendChild(item);
-    });
-}
-
-function renderBeneficiariesList(beneficiaries) {
-    els.beneficiariesTableBody.innerHTML = '';
-
-    if (beneficiaries.length === 0) {
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 6;
-        td.style.textAlign = 'center';
-        td.style.color = 'var(--text-muted)';
-        td.style.padding = '2rem';
-        td.textContent = 'No receivers found. Add one to get started.';
-        tr.appendChild(td);
-        els.beneficiariesTableBody.appendChild(tr);
-    } else {
-        beneficiaries.forEach(b => {
-            const tr = document.createElement('tr');
-
-            // Name Column
-            const tdName = document.createElement('td');
-            tdName.setAttribute('data-label', 'Nickname');
-            tdName.style.fontWeight = '500';
-
-            const nameLink = document.createElement('span');
-            nameLink.className = 'receiver-link-action';
-            nameLink.dataset.id = b.id;
-            nameLink.style.cursor = 'pointer';
-            nameLink.style.color = 'var(--color-primary)';
-            nameLink.style.textDecoration = 'underline';
-            nameLink.style.display = 'flex';
-            nameLink.style.alignItems = 'center';
-            nameLink.style.gap = '0.5rem';
-            nameLink.textContent = b.nickname || b.name;
-
-            // Icon inside name link
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("fill", "none");
-            svg.setAttribute("viewBox", "0 0 24 24");
-            svg.setAttribute("stroke-width", "1.5");
-            svg.setAttribute("stroke", "currentColor");
-            svg.style.width = "14px";
-            svg.style.height = "14px";
-            svg.style.opacity = "0.7";
-            svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />';
-            nameLink.appendChild(svg);
-            tdName.appendChild(nameLink);
-
-            // Account Name
-            const tdAccName = document.createElement('td');
-            tdAccName.setAttribute('data-label', 'Account Name');
-            tdAccName.className = 'text-sub';
-            tdAccName.textContent = b.accountName || '-';
-
-            // Bank Name
-            const tdBank = document.createElement('td');
-            tdBank.setAttribute('data-label', 'Bank');
-            tdBank.innerHTML = `<div style="font-weight: 500;">${b.bankName || '-'}</div><div class="text-sub" style="font-size: 0.8rem;">${b.branch || ''}</div>`;
-
-            // Account No
-            const tdAccNo = document.createElement('td');
-            tdAccNo.setAttribute('data-label', 'Account No');
-            tdAccNo.style.fontFamily = 'monospace';
-            tdAccNo.textContent = b.accountNo || '-';
-
-            // Actions
-            const tdActions = document.createElement('td');
-            tdActions.className = 'actions-cell';
-
-            const btnEdit = document.createElement('button');
-            btnEdit.className = 'icon-btn edit-btn';
-            btnEdit.dataset.id = b.id;
-            btnEdit.title = 'Edit';
-            btnEdit.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>';
-
-            const btnDel = document.createElement('button');
-            btnDel.className = 'icon-btn delete-btn';
-            btnDel.dataset.id = b.id;
-            btnDel.title = 'Delete';
-            btnDel.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>';
-            btnDel.style.color = 'var(--color-danger)';
-            btnDel.style.background = 'none';
-            btnDel.style.border = 'none';
-            btnDel.style.padding = '0';
-            btnDel.style.cursor = 'pointer';
-            btnDel.style.display = 'flex';
-            btnDel.style.alignItems = 'center';
-
-            tdActions.appendChild(btnEdit);
-            tdActions.appendChild(btnDel);
-
-            tr.appendChild(tdName);
-            tr.appendChild(tdAccName);
-            tr.appendChild(tdBank);
-            tr.appendChild(tdAccNo);
-            tr.appendChild(tdActions);
-
-            els.beneficiariesTableBody.appendChild(tr);
-        });
-    }
-}
-
-// --- Restored/Reconstructed Functions ---
-
-function calculatePaymentSummary(transactions, beneficiaries, selectedMonth) {
-    const monthlyTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.type === 'outgoing');
-
-    let pendingCount = 0;
-    let pendingAmount = 0;
-    let paidCount = 0;
-    let paidAmount = 0;
-
-    monthlyTxs.forEach(tx => {
-        if (tx.status === 'paid') {
-            paidCount++;
-            paidAmount += (tx.amountBDT || 0);
-        } else if (tx.status === 'pending' || tx.status === 'hold') {
-            pendingCount++;
-            pendingAmount += (tx.amountBDT || 0);
-        }
-    });
-
-    return { pendingCount, pendingAmount, paidCount, paidAmount };
-}
-
-function cloneTransaction(id) {
-    const tx = store.state.transactions.find(t => t.id === id);
-    if (!tx) return;
-
-    if (tx.type === 'incoming') {
-        els.incDate.value = new Date().toISOString().split('T')[0];
-        els.incAccMonth.value = tx.accountingMonth || store.state.selectedMonth;
-        els.incType.value = tx.subType;
-        els.incSource.value = tx.source;
-        els.incRate.value = tx.rate;
-        els.incUSD.value = tx.amountUSD;
-        els.incBDT.value = tx.amountBDT;
-        els.incId.value = '';
-        els.incomingModal.classList.add('open');
-    } else {
-        els.outDate.value = new Date().toISOString().split('T')[0];
-        els.outAccMonth.value = tx.accountingMonth || store.state.selectedMonth;
-        els.outBeneficiary.value = tx.beneficiaryId;
-        els.outRate.value = tx.rate;
-        els.outUSD.value = tx.amountUSD;
-        els.outBDT.value = tx.amountBDT;
-        els.outId.value = '';
-        els.outgoingModal.classList.add('open');
-    }
-    showToast('Transaction Cloned. Review and Save.', 'success');
-}
-
-function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
-    // 1. Month Filter (Accounting Month takes priority)
-    const monthlyTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth);
-
-    // 2. UI: Update Header Sort Indicators
-    const headers = document.querySelectorAll('th.sortable');
-    headers.forEach(h => {
-        h.classList.remove('active-asc', 'active-desc');
-        if (h.dataset.sort === sortConfig.field) {
-            h.classList.add(sortConfig.direction === 'asc' ? 'active-asc' : 'active-desc');
-        }
-    });
-
-    // 3. Search Filter
-    const incSearchQuery = els.incSearch.value.toLowerCase().trim();
-    const outSearchQuery = els.outSearch.value.toLowerCase().trim();
-
-    // 4. Sorting Logic
-    const sortedTxs = [...monthlyTxs].sort((a, b) => {
-        const field = sortConfig.field;
-        const dir = sortConfig.direction === 'asc' ? 1 : -1;
-
-        let valA, valB;
-
-        if (field === 'beneficiaryId') {
-            const benA = beneficiaries.find(ben => ben.id === a.beneficiaryId);
-            const benB = beneficiaries.find(ben => ben.id === b.beneficiaryId);
-            valA = (benA ? benA.nickname || benA.name : (a.beneficiaryName || '')).toLowerCase();
-            valB = (benB ? benB.nickname || benB.name : (b.beneficiaryName || '')).toLowerCase();
-        } else if (field === 'amountUSD' || field === 'amountBDT' || field === 'rate') {
-            valA = parseFloat(a[field] || 0);
-            valB = parseFloat(b[field] || 0);
-        } else {
-            valA = (a[field] || '').toString().toLowerCase();
-            valB = (b[field] || '').toString().toLowerCase();
-        }
-        if (valA < valB) return -1 * dir;
-        if (valA > valB) return 1 * dir;
-        return 0;
-    });
-
-    // Incoming
-    let incTxs = sortedTxs.filter(t => t.type === 'incoming');
-    if (incSearchQuery) {
-        incTxs = incTxs.filter(t =>
-            (t.source?.toLowerCase() || '').includes(incSearchQuery) ||
-            (t.amountBDT?.toString() || '').includes(incSearchQuery) ||
-            (t.amountUSD?.toString() || '').includes(incSearchQuery) ||
-            (t.date || '').includes(incSearchQuery)
-        );
-    }
-
-    // Calculate Totals for Incoming
-    let totalIncUSD = 0;
-    let totalIncBDT = 0;
-    incTxs.forEach(t => {
-        const u = parseFloat(t.amountUSD || 0);
-        const b = parseFloat(t.amountBDT || 0);
-        if (t.subType === 'return') {
-            totalIncUSD -= u;
-            totalIncBDT -= b;
-        } else {
-            totalIncUSD += u;
-            totalIncBDT += b;
-        }
-    });
-
-    els.incTableBody.innerHTML = '';
-    if (incTxs.length === 0) {
-        els.incTableBody.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-muted">${incSearchQuery ? 'No matching results' : 'No transactions found for this month.'}</td></tr>`;
-    } else {
-        // PREPEND TOTAL ROW (PREMIUM HIGHLIGHTED)
-        const totalRow = document.createElement('tr');
-        totalRow.style.background = 'linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%)';
-        totalRow.style.fontWeight = '900';
-        totalRow.style.boxShadow = 'inset 0 -2px 0 #16a34a';
-        totalRow.innerHTML = `
-            <td colspan="3" class="text-center" style="color: #166534; letter-spacing: 0.15em; font-size: 0.85rem; text-transform: uppercase;">
-                <span style="background: #16a34a; color: white; padding: 2px 10px; border-radius: 4px; font-weight: 800;">MONTHLY TOTAL SUMMARY</span>
-            </td>
-            <td class="amount-column" style="color: #15803d; font-size: 1.25rem;">${fmtUSD(totalIncUSD)}</td>
-            <td class="amount-column" style="color: #15803d; font-size: 1.25rem;">${fmtBDT(totalIncBDT)}</td>
-            <td colspan="3"></td>
-        `;
-        els.incTableBody.appendChild(totalRow);
-
-        incTxs.forEach(tx => {
-            const tr = document.createElement('tr');
-            tr.className = `status-${tx.status || 'received'} type-${tx.subType}`;
-            tr.innerHTML = `
-                <td data-label="Date">${tx.date}</td>
-                <td data-label="Payer">${tx.source}</td>
-                <td data-label="Action"><span class="badge ${tx.subType === 'receive' ? 'bg-green-light text-green' : 'bg-orange-light text-orange'}">${tx.subType === 'receive' ? 'Receive' : 'Return'}</span></td>
-                <td data-label="Amount (USD)" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
-                <td data-label="Amount (BDT)" class="amount-column">
-                    <div class="amount-wrapper">
-                        <span>${fmtBDT(tx.amountBDT)}</span>
-                        <button class="icon-btn copy-amount-btn" data-amount="${tx.amountBDT}" title="Copy BDT">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7.5V6a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-1.5M4 10.5V18a2 2 0 002 2h9a2 2 0 002-2v-7.5a2 2 0 00-2-2H6a2 2 0 00-2 2z" /></svg>
-                        </button>
-                    </div>
-                </td>
-                <td data-label="Rate" class="text-right">${(tx.rate || 0).toFixed(2)}</td>
-                <td data-label="Status"><span class="badge ${tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-green-light text-green'}">${tx.status || 'received'}</span></td>
-                <td class="actions-cell">
-                   <button class="icon-btn edit-tx-btn" data-id="${tx.id}" title="Edit">
-                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
-                   </button>
-                   <button class="icon-btn clone-btn" data-id="${tx.id}" title="Clone">
-                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v8.25A2.25 2.25 0 0 0 6 16.5h2.25m8.25-8.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-7.5A2.25 2.25 0 0 1 8.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 0 0-2.25 2.25v6" /></svg>
-                   </button>
-                </td>
-            `;
-            els.incTableBody.appendChild(tr);
-        });
-    }
-
-    // Outgoing
-    let outTxs = sortedTxs.filter(t => t.type === 'outgoing');
-    if (outSearchQuery) {
-        outTxs = outTxs.filter(t => {
-            const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-            const benName = ben ? (ben.nickname || ben.name).toLowerCase() : 'unknown';
-            return (
-                benName.includes(outSearchQuery) ||
-                (t.amountBDT?.toString() || '').includes(outSearchQuery) ||
-                (t.amountUSD?.toString() || '').includes(outSearchQuery) ||
-                (t.date || '').includes(outSearchQuery) ||
-                (t.status?.toLowerCase() || '').includes(outSearchQuery)
-            );
-        });
-    }
-
-    // Calculate Totals for Outgoing
-    let totalOutUSD = 0;
-    let totalOutBDT = 0;
-    outTxs.forEach(t => {
-        totalOutUSD += parseFloat(t.amountUSD || 0);
-        totalOutBDT += parseFloat(t.amountBDT || 0);
-    });
-
-    els.outTableBody.innerHTML = '';
-    if (outTxs.length === 0) {
-        els.outTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">${outSearchQuery ? 'No matching results' : 'No outgoing transactions found.'}</td></tr>`;
-    } else {
-        // PREPEND TOTAL ROW (PREMIUM HIGHLIGHTED)
-        const totalRow = document.createElement('tr');
-        totalRow.style.background = 'linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%)';
-        totalRow.style.fontWeight = '900';
-        totalRow.style.boxShadow = 'inset 0 -2px 0 #dc2626';
-        totalRow.innerHTML = `
-            <td colspan="2" class="text-center" style="color: #991b1b; letter-spacing: 0.15em; font-size: 0.85rem; text-transform: uppercase;">
-                <span style="background: #dc2626; color: white; padding: 2px 10px; border-radius: 4px; font-weight: 800;">MONTHLY TOTAL SUMMARY</span>
-            </td>
-            <td class="amount-column" style="color: #b91c1c; font-size: 1.25rem;">${fmtUSD(totalOutUSD)}</td>
-            <td class="amount-column" style="color: #b91c1c; font-size: 1.25rem;">${fmtBDT(totalOutBDT)}</td>
-            <td colspan="3"></td>
-        `;
-        els.outTableBody.appendChild(totalRow);
-        outTxs.forEach(tx => {
-            const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
-            const isUnknown = !ben && !tx.beneficiaryName;
-            const benName = ben ? (ben.nickname || ben.name) : (tx.beneficiaryName || 'Unknown');
-            const statusClass = tx.status === 'paid' ? 'bg-green-light text-green' : (tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-gray-light');
-
-            const tr = document.createElement('tr');
-            tr.className = `status-${tx.status}`;
-            tr.innerHTML = `
-                <td data-label="Date">${tx.date}</td>
-                <td data-label="Receiver">
-                    <span class="receiver-link" data-id="${tx.beneficiaryId}" style="cursor:pointer; text-decoration:underline;">${benName}</span>
-                    ${isUnknown ? `<button class="fix-name-btn icon-btn" data-id="${tx.id}" title="Fix Name" style="font-size:0.7rem;padding:2px 7px;margin-left:4px;background:var(--brand-light);border:none;color:var(--brand-primary);border-radius:4px;cursor:pointer;">✏ Fix</button>` : ''}
-                </td>
-                <td data-label="Amount (USD)" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
-                <td data-label="Amount (BDT)" class="amount-column">
-                    <div class="amount-wrapper">
-                        <span>${fmtBDT(tx.amountBDT)}</span>
-                        <button class="icon-btn copy-amount-btn" data-amount="${tx.amountBDT}" title="Copy BDT">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7.5V6a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-1.5M4 10.5V18a2 2 0 002 2h9a2 2 0 002-2v-7.5a2 2 0 00-2-2H6a2 2 0 00-2 2z" /></svg>
-                        </button>
-                    </div>
-                </td>
-                <td data-label="Status"><span class="badge ${statusClass}">${tx.status}</span></td>
-                <td class="actions-cell">
-                    ${tx.status === 'pending' ? `<button class="icon-btn pay-btn" data-id="${tx.id}" title="Mark Paid">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                    </button>` : ''}
-                    ${tx.status === 'pending' ? `<button class="icon-btn hold-btn" data-id="${tx.id}" title="Hold">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" /></svg>
-                    </button>` : ''}
-                    ${tx.status === 'hold' ? `<button class="icon-btn resume-btn" data-id="${tx.id}" title="Resume">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347c-.75.412-1.667-.13-1.667-.986V5.653Z" /></svg>
-                    </button>` : ''}
-                    <button class="icon-btn edit-tx-btn" data-id="${tx.id}" title="Edit">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
-                    </button>
-                    <button class="icon-btn clone-btn" data-id="${tx.id}" title="Clone">
-                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 8.25V6a2.25 2.25 0 0 0-2.25-2.25H6A2.25 2.25 0 0 0 3.75 6v8.25A2.25 2.25 0 0 0 6 16.5h2.25m8.25-8.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-7.5A2.25 2.25 0 0 1 8.25 18v-1.5m8.25-8.25h-6a2.25 2.25 0 0 0-2.25 2.25v6" /></svg>
-                    </button>
-                    ${tx.status !== 'paid' ? `<button class="icon-btn delete-tx-btn" data-id="${tx.id}" title="Delete Transaction">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
-                    </button>` : ''}
-                </td>
-            `;
-            els.outTableBody.appendChild(tr);
-        });
-    }
-}
-
-function generateMonthlyReport() {
-    const { transactions, liquidity, selectedMonth, settings, beneficiaries } = store.state;
-
-    // 1. Header & Dates
-    const [y, m] = selectedMonth.split('-');
-    const dateOpts = { year: 'numeric', month: 'long' };
-    const monthName = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', dateOpts);
-
-    els.repMonth.textContent = monthName;
-    els.repGenDate.textContent = new Date().toLocaleDateString('en-US', { dateStyle: 'medium' });
-
-    // Define formatters without cents for the Executive Summary
-    const fmtBDTNoCents = (n) => `৳${new Intl.NumberFormat('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(n || 0))}`;
-    const fmtUSDNoCents = (n) => `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(n || 0))}`;
-
-    // 2. Summary Financials
-    els.repOpening.textContent = fmtBDTNoCents(liquidity.openingBDT);
-    els.repOpeningUSD.textContent = fmtUSDNoCents(liquidity.openingUSD);
-
-    els.repTotalIn.textContent = fmtBDTNoCents(liquidity.monthReceiptsBDT);
-    els.repTotalInUSD.textContent = fmtUSDNoCents(liquidity.monthReceiptsUSD);
-
-    els.repTotalOut.textContent = fmtBDTNoCents(liquidity.monthDisbursedBDT);
-    els.repTotalOutUSD.textContent = fmtUSDNoCents(liquidity.monthDisbursedUSD);
-
-    els.repClosing.textContent = fmtBDTNoCents(liquidity.closingBDT);
-    els.repClosingUSD.textContent = fmtUSDNoCents(liquidity.closingUSD);
-
-    // Calculate Monthly Liabilities (Pending & Hold)
-    const monthlyOutTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.type === 'outgoing');
-    let monthlyLiabilitiesBDT = 0;
-    monthlyOutTxs.forEach(t => {
-        if (t.status === 'pending' || t.status === 'hold') {
-            monthlyLiabilitiesBDT += parseFloat(t.amountBDT || 0);
-        }
-    });
-
-    const netFlowBDT = liquidity.monthReceiptsBDT - liquidity.monthDisbursedBDT;
-    const projectedNetFlowBDT = netFlowBDT - monthlyLiabilitiesBDT;
-
-    els.repNetFlow.textContent = fmtBDTNoCents(liquidity.closingBDT);
-    els.repNetFlowUSD.textContent = fmtUSDNoCents(liquidity.closingUSD);
-
-    // 3. Status Badge logic (Factoring in Hold/Pending as liabilities)
-    const isSurplus = projectedNetFlowBDT >= 0;
-    const badge = document.getElementById('repStatusBadge');
-    if (badge) {
-        badge.textContent = isSurplus ? 'SURPLUS' : 'SHORTAGE';
-        badge.className = `status-badge-v2 ${isSurplus ? 'surplus' : 'shortage'}`;
-    }
-
-    if (els.repClosingCard) {
-        els.repClosingCard.classList.remove('success', 'danger');
-        els.repClosingCard.classList.add(isSurplus ? 'success' : 'danger');
-    }
-
-    // 4. Data Preparation for Tables
-    const incTxs = transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status !== 'hold');
-    const sourceGroups = {};
-    incTxs.forEach(t => {
-        if (!sourceGroups[t.source]) sourceGroups[t.source] = { bdt: 0, usd: 0 };
-        const b = parseFloat(t.amountBDT || 0);
-        const u = parseFloat(t.amountUSD || 0);
-        if (t.subType === 'return') {
-            sourceGroups[t.source].bdt -= b;
-            sourceGroups[t.source].usd -= u;
-        } else {
-            sourceGroups[t.source].bdt += b;
-            sourceGroups[t.source].usd += u;
-        }
-    });
-
-    const outTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status === 'paid');
-    const benGroups = {};
-    outTxs.forEach(t => {
-        const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-        const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
-        if (!benGroups[name]) benGroups[name] = { bdt: 0, usd: 0 };
-        benGroups[name].bdt += parseFloat(t.amountBDT || 0);
-        benGroups[name].usd += parseFloat(t.amountUSD || 0);
-    });
-
-    // Pending/Hold outgoing
-    const pendingOutTxs = transactions.filter(t =>
-        t.type === 'outgoing' &&
-        (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth &&
-        ['pending', 'hold'].includes(t.status)
-    );
-    const pendingBenGroups = {};
-    pendingOutTxs.forEach(t => {
-        const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-        const name = ben ? ben.nickname || ben.name : 'Unknown';
-        if (!pendingBenGroups[name]) pendingBenGroups[name] = { bdt: 0, usd: 0 };
-        pendingBenGroups[name].bdt += parseFloat(t.amountBDT || 0);
-        pendingBenGroups[name].usd += parseFloat(t.amountUSD || 0);
-    });
-
-    // 5. Populate Tables (Sorted Alphabetically)
-    const sortedSources = Object.entries(sourceGroups).sort((a, b) => a[0].localeCompare(b[0]));
-    els.repInBody.innerHTML = sortedSources.map(([name, data]) => `
-        <tr style="border-bottom: 1px solid var(--border-color); transition: all 0.2s;">
-            <td style="font-weight: 500; font-size: 0.95rem; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
-                <span style="display:inline-block; vertical-align:middle; width:8px; height:8px; border-radius:50%; background:var(--success-color); margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
-            </td>
-            <td class="text-right" style="color: var(--success-dark); font-weight: 500;">${fmtUSD(data.usd)}</td>
-            <td class="text-right" style="font-weight: 600; color: #111;">${fmtBDT(data.bdt)}</td>
-        </tr>
-    `).join('');
-    els.repInTotal.textContent = fmtBDT(liquidity.monthReceiptsBDT);
-    els.repInTotalUSD.textContent = fmtUSD(liquidity.monthReceiptsUSD);
-
-    const sortedBens = Object.entries(benGroups).sort((a, b) => a[0].localeCompare(b[0]));
-    const sortedPendingBens = Object.entries(pendingBenGroups).sort((a, b) => a[0].localeCompare(b[0]));
-
-    let pendingTotalBDT = 0;
-    let pendingTotalUSD = 0;
-    sortedPendingBens.forEach(([, d]) => { pendingTotalBDT += d.bdt; pendingTotalUSD += d.usd; });
-
-    const paidRows = sortedBens.map(([name, data]) => `
-        <tr style="border-bottom: 1px solid var(--border-color); transition: all 0.2s;">
-            <td style="font-weight: 500; font-size: 0.95rem; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
-                <span style="display:inline-block; vertical-align:middle; width:8px; height:8px; border-radius:50%; background:var(--danger-color); margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
-            </td>
-            <td class="text-right" style="color: var(--danger-color); font-weight: 500;">${fmtUSD(data.usd)}</td>
-            <td class="text-right" style="font-weight: 600; color: #111;">${fmtBDT(data.bdt)}</td>
-        </tr>
-    `).join('');
-
-    let pendingRows = '';
-    if (sortedPendingBens.length > 0) {
-        pendingRows = `
-            <tr style="background: #fff8e1;">
-                <td colspan="3" style="font-weight: 700; color: #92400e; text-align: center; padding: 5px 8px; font-size: 0.8rem; letter-spacing: 0.05em;">
-                    PENDING LIABILITIES (Not Yet Paid)
-                </td>
-            </tr>
-        ` + sortedPendingBens.map(([name, data]) => `
-            <tr style="border-bottom: 1px solid #fde68a; background: #fffbeb;">
-                <td style="font-weight: 500; font-size: 0.95rem; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
-                    <span style="display:inline-block; vertical-align:middle; width:8px; height:8px; border-radius:50%; background:#f59e0b; margin-right:4px;"></span><span style="vertical-align:middle; color:#92400e;">${name}</span>
-                </td>
-                <td class="text-right" style="color: #b45309; font-weight: 500;">${fmtUSD(data.usd)}</td>
-                <td class="text-right" style="font-weight: 600; color: #92400e;">${fmtBDT(data.bdt)}</td>
-            </tr>
-        `).join('') + `
-            <tr style="background: #fef3c7; font-weight: 700;">
-                <td style="color: #92400e; font-size: 0.85rem;">Pending Total</td>
-                <td class="text-right" style="color: #b45309;">${fmtUSD(pendingTotalUSD)}</td>
-                <td class="text-right" style="color: #92400e;">${fmtBDT(pendingTotalBDT)}</td>
-            </tr>
-        `;
-    }
-
-    els.repOutBody.innerHTML = paidRows + pendingRows;
-    els.repOutTotal.textContent = fmtBDT(liquidity.monthDisbursedBDT);
-    els.repOutTotalUSD.textContent = fmtUSD(liquidity.monthDisbursedUSD);
-}
-
-function exportCEOReportCSV() {
-    const { transactions, liquidity, selectedMonth, beneficiaries } = store.state;
-    const [y, m] = selectedMonth.split('-');
-    const monthName = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-
-    // 1. Data Preparation (Grouping & Sorting)
-    const sourceGroups = {};
-    const incTxs = transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status !== 'hold');
-    incTxs.forEach(t => {
-        if (!sourceGroups[t.source]) sourceGroups[t.source] = { bdt: 0, usd: 0 };
-        const b = parseFloat(t.amountBDT || 0);
-        const u = parseFloat(t.amountUSD || 0);
-        if (t.subType === 'return') {
-            sourceGroups[t.source].bdt -= b;
-            sourceGroups[t.source].usd -= u;
-        } else {
-            sourceGroups[t.source].bdt += b;
-            sourceGroups[t.source].usd += u;
-        }
-    });
-
-    const benGroups = {};
-    const outTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status === 'paid');
-    outTxs.forEach(t => {
-        const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-        const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
-        if (!benGroups[name]) benGroups[name] = { bdt: 0, usd: 0 };
-        benGroups[name].bdt += parseFloat(t.amountBDT || 0);
-        benGroups[name].usd += parseFloat(t.amountUSD || 0);
-    });
-
-    const pendingBenGroupsCSV = {};
-    const pendingOutTxsCSV = transactions.filter(t =>
-        t.type === 'outgoing' &&
-        (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth &&
-        ['pending', 'hold'].includes(t.status)
-    );
-    pendingOutTxsCSV.forEach(t => {
-        const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-        const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
-        if (!pendingBenGroupsCSV[name]) pendingBenGroupsCSV[name] = { bdt: 0, usd: 0 };
-        pendingBenGroupsCSV[name].bdt += parseFloat(t.amountBDT || 0);
-        pendingBenGroupsCSV[name].usd += parseFloat(t.amountUSD || 0);
-    });
-
-    const sortedSources = Object.entries(sourceGroups).sort((a, b) => a[0].localeCompare(b[0]));
-    const sortedBens = Object.entries(benGroups).sort((a, b) => a[0].localeCompare(b[0]));
-    const sortedPendingBensCSV = Object.entries(pendingBenGroupsCSV).sort((a, b) => a[0].localeCompare(b[0]));
-    let csvPendingTotalUSD = 0;
-    let csvPendingTotalBDT = 0;
-    sortedPendingBensCSV.forEach(([, d]) => { csvPendingTotalUSD += d.usd; csvPendingTotalBDT += d.bdt; });
-
-    // 2. CSV Construction
-    let csv = `Zikrullah TV LLC - EXECUTIVE FINANCIAL OPERATIONS REPORT\n`;
-    csv += `Report Period,${monthName}\n`;
-    csv += `Generated On,${new Date().toLocaleDateString()}\n\n`;
-
-    // 3. Executive Summary
-    csv += `EXECUTIVE SUMMARY\n`;
-    csv += `Category,USD Amount,BDT Amount (৳)\n`;
-    csv += `Opening Balance,${liquidity.openingUSD.toFixed(2)},${liquidity.openingBDT.toFixed(2)}\n`;
-    csv += `Total Money In,${liquidity.monthReceiptsUSD.toFixed(2)},${liquidity.monthReceiptsBDT.toFixed(2)}\n`;
-    csv += `Total Money Out (Paid),${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n`;
-    csv += `Pending Liabilities,${csvPendingTotalUSD.toFixed(2)},${csvPendingTotalBDT.toFixed(2)}\n`;
-    csv += `Closing Balance,${liquidity.closingUSD.toFixed(2)},${liquidity.closingBDT.toFixed(2)}\n`;
-    csv += `Total Liquidity Position,${liquidity.closingUSD.toFixed(2)},${liquidity.closingBDT.toFixed(2)}\n\n`;
-
-    // 4. Money In Summary
-    csv += `MONEY IN (BY PAYER) - ALPHABETICAL\n`;
-    csv += `Payer Name,USD Amount,BDT Total (৳)\n`;
-    sortedSources.forEach(([name, data]) => {
-        csv += `"${name}",${data.usd.toFixed(2)},${data.bdt.toFixed(2)}\n`;
-    });
-    csv += `TOTAL IN,${liquidity.monthReceiptsUSD.toFixed(2)},${liquidity.monthReceiptsBDT.toFixed(2)}\n\n`;
-
-    // 5. Money Out Summary (Paid)
-    csv += `MONEY OUT - PAID (BY RECEIVER) - ALPHABETICAL\n`;
-    csv += `Receiver Name,USD Amount,BDT Total (৳)\n`;
-    sortedBens.forEach(([name, data]) => {
-        csv += `"${name}",${data.usd.toFixed(2)},${data.bdt.toFixed(2)}\n`;
-    });
-    csv += `TOTAL PAID OUT,${liquidity.monthDisbursedUSD.toFixed(2)},${liquidity.monthDisbursedBDT.toFixed(2)}\n\n`;
-
-    // 6. Pending Liabilities
-    if (sortedPendingBensCSV.length > 0) {
-        csv += `PENDING LIABILITIES (NOT YET PAID)\n`;
-        csv += `Receiver Name,USD Amount,BDT Total (৳)\n`;
-        sortedPendingBensCSV.forEach(([name, data]) => {
-            csv += `"${name}",${data.usd.toFixed(2)},${data.bdt.toFixed(2)}\n`;
-        });
-        csv += `TOTAL PENDING,${csvPendingTotalUSD.toFixed(2)},${csvPendingTotalBDT.toFixed(2)}\n`;
-    }
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Zikrullah_TV_CEO_Report_${selectedMonth}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function exportCSV(type) {
-    const { transactions, selectedMonth } = store.state;
-    const txs = transactions.filter(t => t.type === type && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth);
-
-    if (txs.length === 0) {
-        showToast('No data to export', 'error');
-        return;
-    }
-
-    const headers = type === 'incoming'
-        ? ['Date', 'Type', 'Source', 'USD', 'BDT', 'Rate']
-        : ['Date', 'Receiver', 'USD', 'BDT', 'Rate', 'Status'];
-
-    const rows = txs.map(t => {
-        if (type === 'incoming') {
-            return [t.date, t.subType, t.source, t.amountUSD, t.amountBDT, t.rate];
-        } else {
-            const ben = store.state.beneficiaries.find(b => b.id === t.beneficiaryId);
-            const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
-            return [t.date, name, t.amountUSD, t.amountBDT, t.rate, t.status];
-        }
-    });
-
-    const escapeCSV = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const csvContent = [
-        headers.map(escapeCSV).join(','),
-        ...rows.map(r => r.map(escapeCSV).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${type}_${selectedMonth}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function downloadFullBackup() {
-    const data = {
-        state: store.state,
-        exportDate: new Date().toISOString(),
-        version: '1.0'
-    };
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `zikrullah_tv_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Backup downloaded successfully', 'success');
-}
-
-function renderProjectedCashflow(transactions, liquidity, selectedMonth) {
-    const container = document.getElementById('cashflowSummary');
-    if (!container) return;
-
-    const txMonth = t => t.accountingMonth || t.date.slice(0, 7);
-
-    // Only selected month's pending/hold outgoing
-    const pendingOutTxs = transactions.filter(t =>
-        t.type === 'outgoing' &&
-        (t.status === 'pending' || t.status === 'hold') &&
-        txMonth(t) === selectedMonth
-    );
-    let pendingOutBDT = 0;
-    let pendingOutUSD = 0;
-    pendingOutTxs.forEach(t => {
-        pendingOutBDT += parseFloat(t.amountBDT || 0);
-        pendingOutUSD += parseFloat(t.amountUSD || 0);
-    });
-
-    // Only selected month's held incoming
-    const heldIncTxs = transactions.filter(t =>
-        t.type === 'incoming' &&
-        t.status === 'hold' &&
-        txMonth(t) === selectedMonth
-    );
-    let heldIncBDT = 0;
-    let heldIncUSD = 0;
-    heldIncTxs.forEach(t => {
-        heldIncBDT += parseFloat(t.amountBDT || 0);
-        heldIncUSD += parseFloat(t.amountUSD || 0);
-    });
-
-    const currentCashBDT = liquidity.closingBDT;
-    const currentCashUSD = liquidity.closingUSD;
-
-    // Projected = Current + Expected In - Pending Out
-    const projectedBDT = currentCashBDT + heldIncBDT - pendingOutBDT;
-    const projectedUSD = currentCashUSD + heldIncUSD - pendingOutUSD;
-
-    // Determine Status
-    const isShortage = projectedBDT < 0;
-    const statusLabel = isShortage ? 'Cash Shortage' : 'Cash Surplus';
-
-    // Render Summary Cards
-    container.innerHTML = `
-        <div class="section-header">
-            <h3>Projected Cashflow</h3>
-        </div>
-        <div class="dashboard-grid">
-            <div class="card">
-                <div class="card-icon indigo">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.212 11.638 12.09 10.5 11.5c-1.138-.59-1.138-1.712 0-2.303 1.172-.59 3.07-.59 4.242 0 .44.221.73.495.879.659M9.75 4.038c3.236 4.5 1.25 9.125-1.5 12.875m7.5-12.875c-3.236 4.5-1.25 9.125 1.5 12.875" />
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <div class="card-label">Cash in Hand</div>
-                    <div class="card-value-display">
-                        <div class="currency-row usd-row">
-                            <span class="currency-label">USD</span>
-                            <span class="currency-val usd">${fmtUSD(currentCashUSD)}</span>
-                        </div>
-                        <div class="currency-row bdt-row">
-                            <span class="currency-label">BDT</span>
-                            <span class="currency-val bdt text-brand">${fmtBDT(currentCashBDT)}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-icon orange">
-                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5a.75.75 0 0 1 .75-.75h.75m-1.5 1.5v12.75c0 .621-.504 1.125-1.125 1.125H12m1.5-15h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375c.621 0 1.125.504 1.125 1.125V6.75m-3-1.5h.375A1.125 1.125 0 0 1 12 5.25V6.75m-3-1.5h.375A1.125 1.125 0 0 1 9 5.25V6.75m-3-1.5h.375A1.125 1.125 0 0 1 6 5.25V6.75m-3-1.5h.375a1.125 1.125 0 0 1 1.125 1.125V6.75" />
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <div class="card-label">Expected Activity</div>
-                    <div class="card-value-display">
-                        <div class="currency-row usd-row">
-                            <span class="currency-label">Pending USD</span>
-                            <span class="currency-val usd text-warning">-${fmtUSD(pendingOutUSD)}</span>
-                        </div>
-                        <div class="currency-row bdt-row">
-                            <span class="currency-label">Pending BDT</span>
-                            <span class="currency-val bdt text-warning">-${fmtBDT(pendingOutBDT)}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                 <div class="card-icon" style="color: ${isShortage ? 'var(--danger)' : 'var(--success)'}; background: ${isShortage ? 'var(--danger-bg)' : 'var(--success-bg)'}">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <div class="card-label">${statusLabel}</div>
-                    <div class="card-value-display">
-                        <div class="currency-row usd-row">
-                            <span class="currency-label">Projected USD</span>
-                            <span class="currency-val usd ${isShortage ? 'text-danger' : 'text-success'}">${fmtUSD(projectedUSD)}</span>
-                        </div>
-                        <div class="currency-row bdt-row">
-                            <span class="currency-label">Projected BDT</span>
-                            <span class="currency-val bdt ${isShortage ? 'text-danger' : 'text-success'}">${fmtBDT(projectedBDT)}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function copyToClipboard(text) {
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(() => {
-            showToast(`Copied: ${text}`, 'success');
-        }).catch(err => {
-            console.error('Modern copy failed', err);
-            fallbackCopyTextToClipboard(text);
-        });
-    } else {
-        fallbackCopyTextToClipboard(text);
-    }
-}
-
-function fallbackCopyTextToClipboard(text) {
-    const textArea = document.createElement("textarea");
-    textArea.value = text;
-
-    // Ensure it's not visible and doesn't interfere with layout
-    textArea.style.position = "fixed";
-    textArea.style.left = "-9999px";
-    textArea.style.top = "0";
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showToast(`Copied: ${text}`, 'success');
-        } else {
-            showToast('Failed to copy', 'error');
-        }
-    } catch (err) {
-        console.error('Fallback copy failed', err);
-        showToast('Failed to copy', 'error');
-    }
-
-    document.body.removeChild(textArea);
-}
-
-function openBeneficiaryModal(ben = null) {
-    if (ben) {
-        els.benModalTitle.textContent = 'Edit Receiver';
-        els.benId.value = ben.id;
-        els.benNickname.value = ben.nickname || ben.name;
-        els.benAccountName.value = ben.accountName || '';
-        els.benBankName.value = ben.bankName || '';
-        els.benAccountNo.value = ben.accountNo || '';
-        els.benBranch.value = ben.branch || '';
-        els.beneficiaryModal.classList.add('open');
-    } else {
-        els.benModalTitle.textContent = 'Add Receiver';
-        els.benForm.reset();
-        els.benId.value = '';
-        els.beneficiaryModal.classList.add('open');
-    }
-}
-
-function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth = '', filterYear = String(new Date().getFullYear())) {
-    const q = query.toLowerCase().trim();
-    const txMonth = t => t.accountingMonth || t.date.slice(0, 7);
-
-    // Sort by date descending
-    const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
-
-    let filtered = sorted;
-
-    // 1. Apply Month/Year Filter — use accountingMonth for consistency
-    if (filterMonth) {
-        const targetPrefix = `${filterYear}-${filterMonth}`;
-        filtered = filtered.filter(t => txMonth(t) === targetPrefix);
-    } else if (filterYear) {
-        filtered = filtered.filter(t => txMonth(t).startsWith(filterYear));
-    }
-
-    // 2. Apply Search Query
-    if (q) {
-        filtered = filtered.filter(t => {
-            const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
-            const rawIdentity = t.type === 'incoming' ? t.source : (ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown'));
-            const identity = (rawIdentity || '').toLowerCase();
-            return (
-                (t.date || '').includes(q) ||
-                identity.includes(q) ||
-                (t.amountUSD?.toString() || '').includes(q) ||
-                (t.amountBDT?.toString() || '').includes(q) ||
-                (t.type?.toLowerCase() || '').includes(q)
-            );
-        });
-    }
-
-    els.historyTableBody.innerHTML = '';
-    if (filtered.length === 0) {
-        els.historyTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">No transactions found matching "${q}"</td></tr>`;
-        return;
-    }
-
-    filtered.forEach(tx => {
-        const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
-        const identity = tx.type === 'incoming' ? tx.source : (ben ? ben.nickname || ben.name : (tx.beneficiaryName || 'Unknown'));
-        const typeLabel = tx.type === 'incoming' ? (tx.subType === 'return' ? 'Return' : 'Receive') : 'Payout';
-        const typeClass = tx.type === 'incoming' ? (tx.subType === 'return' ? 'bg-orange-light text-orange' : 'bg-green-light text-green') : 'bg-indigo-light text-indigo';
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td data-label="Date">${tx.date}</td>
-            <td data-label="Type"><span class="badge ${typeClass}">${typeLabel}</span></td>
-            <td data-label="Identity">${identity}</td>
-            <td data-label="USD" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
-            <td data-label="BDT" class="amount-column font-bold">${fmtBDT(tx.amountBDT)}</td>
-            <td data-label="Rate" class="text-right">${(tx.rate || 0).toFixed(2)}</td>
-            <td class="actions-cell">
-                <button class="icon-btn edit-tx-btn-hist" data-id="${tx.id}" title="Edit">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>
-                </button>
-            </td>
-        `;
-        els.historyTableBody.appendChild(tr);
-    });
-}
-
-// Generates a bank-style CSV statement for a specific month
-function downloadBankStatement(transactions, beneficiaries, month, year) {
-    try {
-        console.log('Statement download triggered:', { month, year, txCount: transactions.length });
-
-        let filtered = transactions;
-        let title = "Full Transaction History";
-        let fileName = "full_history.csv";
-
-        if (month) {
-            const targetPrefix = `${year}-${month}`;
-            filtered = transactions
-                .filter(t => t.date.startsWith(targetPrefix))
-                .sort((a, b) => a.date.localeCompare(b.date));
-            title = `Account Statement - ${month}/${year}`;
-            fileName = `statement_${year}_${month}.csv`;
-        } else {
-            // Sort by date descending for full history
-            filtered = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
-        }
-
-        if (filtered.length === 0) {
-            showToast('No transactions found to download.', 'info');
-            return;
-        }
-
-        // --- Format CSV ---
-        const headers = ["Date", "Type", "Ref/Identity", "USD", "BDT", "Rate", "Status"];
-        let csvContent = `${title}\n\n`;
-        csvContent += headers.join(",") + "\n";
-
-        filtered.forEach(tx => {
-            const ben = beneficiaries.find(b => b.id === tx.beneficiaryId);
-            const identity = tx.type === 'incoming' ? (tx.source || 'Unknown') : (ben ? ben.nickname || ben.name : (tx.beneficiaryName || 'Unknown'));
-            const typeLabel = tx.type === 'incoming' ? (tx.subType === 'return' ? 'Return' : 'Receive') : 'Payout';
-
-            const usd = (parseFloat(tx.amountUSD) || 0).toFixed(2);
-            const bdt = (parseFloat(tx.amountBDT) || 0).toFixed(2);
-            const rate = (parseFloat(tx.rate) || 0).toFixed(2);
-
-            const row = [
-                tx.date,
-                `"${typeLabel}"`,
-                `"${identity.replace(/"/g, '""')}"`,
-                usd,
-                bdt,
-                rate,
-                `"${tx.status || 'received'}"`
-            ];
-            csvContent += row.join(",") + "\n";
-        });
-
-        // --- Trigger Download ---
-        const BOM = '\uFEFF';
-        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName;
-
-        // Ensure link is in DOM for some browsers
-        link.style.display = 'none';
-        document.body.appendChild(link);
-
-        // Trigger click
-        link.click();
-
-        // Clean up after longer delay
-        setTimeout(() => {
-            if (document.body.contains(link)) {
-                document.body.removeChild(link);
-            }
-            URL.revokeObjectURL(url);
-        }, 1000);
-
-        showToast('Download Started', 'success');
-    } catch (error) {
-        console.error('Download Logic Error:', error);
-        showToast('System Error: File could not be generated.', 'error');
-    }
-}
-
-*/

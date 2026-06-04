@@ -12,7 +12,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="./src/styles/index.css?v=11">
+    <link rel="stylesheet" href="./src/styles/index.css?v=12">
     <!-- Print Styles (Loaded globally for screen preview, restricted by @media print inside) -->
     <link rel="stylesheet" href="./src/styles/print.css?v=3">
     <!-- PDF Generation Library -->
@@ -208,6 +208,55 @@
             <div id="cashflowSummary" class="summary-container" style="margin-top: 1rem;">
                 <!-- Dynamic cards will be rendered here by app.js -->
             </div>
+
+            <!-- Payment Overview Section -->
+            <div class="section-header">
+                <h3>Payment Overview</h3>
+            </div>
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-icon bg-orange-light text-orange">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Pending Payments</div>
+                        <div class="card-value" id="statsPendingCount">0</div>
+                        <div class="card-value-sub" id="statsPendingAmount">৳0.00</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon bg-green-light text-green">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Paid This Month</div>
+                        <div class="card-value" id="statsPaidCount">0</div>
+                        <div class="card-value-sub" id="statsPaidAmount">৳0.00</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon bg-indigo-light text-indigo">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                        </svg>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-label">Active Receivers</div>
+                        <div class="card-value" id="statsReceiversCount">0</div>
+                        <div class="card-value-sub">Total Beneficiaries</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Incoming Funds Tab (Now a Main View) -->
@@ -228,6 +277,7 @@
             <div class="action-bar">
                 <div class="search-wrapper">
                     <input type="text" id="incSearch" placeholder="Search transactions...">
+                    <button class="search-clear-btn" id="incSearchClear" title="Clear search" style="display:none;">&times;</button>
                 </div>
                 <div class="action-buttons">
                     <button id="manageSourcesBtn" class="btn-secondary">
@@ -266,6 +316,7 @@
                             <th class="sortable" data-sort="amountUSD" title="Sort by USD">Amount (USD)</th>
                             <th class="sortable" data-sort="amountBDT" title="Sort by BDT">Amount (BDT)</th>
                             <th class="sortable" data-sort="rate" title="Sort by Rate">Rate</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -300,6 +351,7 @@
             <div class="action-bar">
                 <div class="search-wrapper">
                     <input type="text" id="outSearch" placeholder="Search transactions...">
+                    <button class="search-clear-btn" id="outSearchClear" title="Clear search" style="display:none;">&times;</button>
                 </div>
                 <div class="action-buttons">
                     <button id="manageBeneficiariesBtn" class="btn-secondary">
@@ -345,54 +397,6 @@
             </div>
         </div>
 
-        <!-- Payment Overview Section -->
-        <div class="section-header">
-            <h3>Payment Overview</h3>
-        </div>
-        <div class="dashboard-grid">
-            <div class="card">
-                <div class="card-icon bg-orange-light text-orange">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <div class="card-label">Pending Payments</div>
-                    <div class="card-value" id="statsPendingCount">0</div>
-                    <div class="card-value-sub" id="statsPendingAmount">৳0.00</div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-icon bg-green-light text-green">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <div class="card-label">Paid This Month</div>
-                    <div class="card-value" id="statsPaidCount">0</div>
-                    <div class="card-value-sub" id="statsPaidAmount">৳0.00</div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-icon bg-indigo-light text-indigo">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
-                        stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <div class="card-label">Active Receivers</div>
-                    <div class="card-value" id="statsReceiversCount">0</div>
-                    <div class="card-value-sub">Total Beneficiaries</div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Modals -->
@@ -1022,12 +1026,40 @@
         </div>
     </div>
 
+    <!-- Custom Confirm / Prompt Dialog -->
+    <div id="confirmModal" class="modal-overlay confirm-modal-overlay">
+        <div class="modal confirm-modal-box">
+            <div class="modal-header">
+                <h3 id="confirmTitle">Confirm</h3>
+            </div>
+            <div class="modal-content">
+                <p id="confirmMessage" class="confirm-message"></p>
+                <div id="confirmInputWrapper" style="display:none; margin-top: 1rem;">
+                    <input type="text" id="confirmInput" class="input-lg">
+                </div>
+                <div class="confirm-actions">
+                    <button id="confirmCancelBtn" class="btn-secondary">Cancel</button>
+                    <button id="confirmOkBtn" class="btn-primary">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- Scripts -->
+    <!-- Cache-bust CSS/JS with build timestamp -->
+    <script>
+        (function () {
+            const v = 'v=' + (window.__appVersion || Date.now());
+            document.querySelectorAll('link[rel="stylesheet"][href*="src/styles"]').forEach(l => {
+                l.href = l.href.replace(/\?v=[^&]+/, '') + '?' + v;
+            });
+        })();
+    </script>
 
-    <script type="module" src="./src/app.js?v=47"></script>
+    <!-- Scripts -->
+    <script type="module" src="./src/app.js?v=48"></script>
 </body>
 
 </html>

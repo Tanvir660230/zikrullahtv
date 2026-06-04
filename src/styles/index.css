@@ -69,17 +69,8 @@
     --font-heading: 'Manrope', sans-serif;
     --font-body: 'Manrope', sans-serif;
 
-    /* Radii - Slightly squarer */
-    --radius-xs: 4px;
-    --radius-sm: 4px;
-    --radius-md: 4px;
-    --radius-lg: 4px;
-    /* Fiverr uses very subtle rounded corners or standard 4px */
-    --radius-full: 9999px;
-
     /* Fonts */
     --font-heading: 'Outfit', sans-serif;
-    /* Keep Outfit as it works well, but we'll bold it up */
     --font-body: 'Outfit', sans-serif;
 
     /* Compatibility aliases */
@@ -1441,15 +1432,6 @@ tbody tr.status-pending {
     }
 
     /* 2. Bottom Navigation - Pill-in-Pod Modern UI */
-    .main-nav-container {
-        position: static;
-        padding: 0.75rem 1rem;
-        background: transparent;
-        display: flex;
-        justify-content: center;
-        margin: 0.5rem 0 1rem;
-    }
-
     .main-nav {
         display: flex;
         background: #ffffff;
@@ -2295,5 +2277,206 @@ tbody tr.status-pending {
     @page {
         size: A4 portrait;
         margin: 1.5cm;
+    }
+}
+
+/* --- Toast Notifications --- */
+.toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: var(--font-body);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    pointer-events: auto;
+    max-width: 360px;
+    word-break: break-word;
+}
+
+.toast.success {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+    border-left: 4px solid #16a34a;
+}
+
+.toast.error {
+    background: #fff1f2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+    border-left: 4px solid #e11d48;
+}
+
+.toast.info {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #3b82f6;
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(40px); }
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        bottom: 7rem;
+        right: 1rem;
+        left: 1rem;
+    }
+    .toast {
+        max-width: 100%;
+    }
+}
+
+/* --- Search Clear Button --- */
+.search-wrapper {
+    position: relative;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 50%;
+    transition: background 0.15s, color 0.15s;
+}
+
+.search-clear-btn:hover {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+}
+
+/* --- Empty State --- */
+.empty-state-cell {
+    text-align: center !important;
+    padding: 3rem 1rem !important;
+}
+
+.empty-state-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-muted);
+}
+
+.empty-state-inner svg {
+    opacity: 0.35;
+    color: var(--text-muted);
+}
+
+.empty-state-inner p {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 0;
+}
+
+.empty-state-inner span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    opacity: 0.75;
+}
+
+/* --- Number Format Hint --- */
+.format-hint {
+    font-size: 0.75rem;
+    color: var(--brand-primary);
+    font-weight: 700;
+    margin-top: 0.3rem;
+    min-height: 1rem;
+    letter-spacing: 0.01em;
+    transition: opacity 0.2s;
+}
+
+/* --- Custom Confirm Modal --- */
+.confirm-modal-overlay {
+    z-index: 5000 !important;
+}
+
+.confirm-modal-box {
+    max-width: 420px !important;
+}
+
+.confirm-message {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-line;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-light);
+}
+
+.confirm-actions .btn-primary.danger-confirm {
+    background: var(--danger);
+    box-shadow: 0 4px 6px -1px rgba(247, 64, 64, 0.2);
+}
+
+.confirm-actions .btn-primary.danger-confirm:hover {
+    background: var(--danger-text);
+}
+
+/* Keyboard shortcut hint badge */
+.shortcut-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg-app);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    padding: 1px 5px;
+    letter-spacing: 0.05em;
+    vertical-align: middle;
+    margin-left: 4px;
+    opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+    .shortcut-hint { display: none; }
+    .confirm-modal-box {
+        border-radius: 20px 20px 0 0 !important;
+        max-width: none !important;
+        position: fixed;
+        bottom: 0;
     }
 }

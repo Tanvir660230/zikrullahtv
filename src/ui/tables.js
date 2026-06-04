@@ -73,7 +73,13 @@ export function renderTables(transactions, beneficiaries, selectedMonth, sortCon
 
     els.incTableBody.innerHTML = '';
     if (incTxs.length === 0) {
-        els.incTableBody.innerHTML = `<tr><td colspan="8" class="text-center p-4 text-muted">${incSearchQuery ? 'No matching results' : 'No transactions found for this month.'}</td></tr>`;
+        const emptyMsg = incSearchQuery ? 'No results match your search.' : 'No money in records for this month.';
+        const emptyHint = incSearchQuery ? 'Try a different keyword.' : 'Click "+ Money In" to add a record.';
+        els.incTableBody.innerHTML = `<tr><td colspan="8" class="empty-state-cell"><div class="empty-state-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:48px;height:48px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <p>${emptyMsg}</p><span>${emptyHint}</span></div></td></tr>`;
     } else {
         const totalRow = document.createElement('tr');
         totalRow.style.background = 'linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%)';
@@ -144,7 +150,13 @@ export function renderTables(transactions, beneficiaries, selectedMonth, sortCon
 
     els.outTableBody.innerHTML = '';
     if (outTxs.length === 0) {
-        els.outTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-4 text-muted">${outSearchQuery ? 'No matching results' : 'No outgoing transactions found.'}</td></tr>`;
+        const emptyMsg = outSearchQuery ? 'No results match your search.' : 'No money out records for this month.';
+        const emptyHint = outSearchQuery ? 'Try a different keyword.' : 'Click "+ Money Out" to create a pending order.';
+        els.outTableBody.innerHTML = `<tr><td colspan="7" class="empty-state-cell"><div class="empty-state-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:48px;height:48px;">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+            </svg>
+            <p>${emptyMsg}</p><span>${emptyHint}</span></div></td></tr>`;
     } else {
         const totalRow = document.createElement('tr');
         totalRow.style.background = 'linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%)';
