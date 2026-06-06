@@ -61,24 +61,27 @@ export const firebaseService = {
     },
 
     async getCollection(collectionName) {
-        const q = methods.query(methods.collection(db, collectionName), methods.orderBy('date', 'desc'));
+        const q = methods.collection(db, collectionName);
         const snapshot = await methods.getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (collectionName === 'transactions') {
+            data.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        }
+        return data;
     },
 
     subscribeToCollection(collectionName, callback) {
-        let q;
-        if (collectionName === 'transactions') {
-            q = methods.query(methods.collection(db, collectionName), methods.orderBy('date', 'desc'));
-        } else {
-            q = methods.collection(db, collectionName);
-        }
+        const q = methods.collection(db, collectionName);
 
         return methods.onSnapshot(q, (snapshot) => {
             const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (collectionName === 'transactions') {
+                data.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            }
             callback(data);
         }, (error) => {
             console.error(`FirebaseService: Subscription error for ${collectionName}:`, error);
+            callback([]); // Unblock the store loading spinner
         });
     },
 
@@ -126,6 +129,7 @@ export const firebaseService = {
             }
         }, (error) => {
             console.error('FirebaseService: Settings subscription error:', error);
+            callback(null); // Unblock the store loading spinner
         });
     },
 

@@ -1,5 +1,5 @@
 import { store } from '../store/store.js';
-import { fmtUSD, fmtBDT, showToast } from '../utils/utils.js';
+import { fmtUSD, fmtBDT, showToast, escapeHTML } from '../utils/utils.js';
 import { els } from './elements.js';
 
 export function generateMonthlyReport() {
@@ -23,7 +23,7 @@ export function generateMonthlyReport() {
     els.repClosing.textContent = fmtBDTNoCents(liquidity.closingBDT);
     els.repClosingUSD.textContent = fmtUSDNoCents(liquidity.closingUSD);
 
-    const monthlyOutTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.type === 'outgoing');
+    const monthlyOutTxs = transactions.filter(t => (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && t.type === 'outgoing');
     let monthlyLiabilitiesBDT = 0;
     monthlyOutTxs.forEach(t => {
         if (t.status === 'pending' || t.status === 'hold') monthlyLiabilitiesBDT += parseFloat(t.amountBDT || 0);
@@ -47,7 +47,7 @@ export function generateMonthlyReport() {
     }
 
     // Group Money In by source
-    const incTxs = transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status !== 'hold');
+    const incTxs = transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && t.status !== 'hold');
     const sourceGroups = {};
     incTxs.forEach(t => {
         if (!sourceGroups[t.source]) sourceGroups[t.source] = { bdt: 0, usd: 0 };
@@ -57,7 +57,7 @@ export function generateMonthlyReport() {
     });
 
     // Group paid outgoing by receiver
-    const outTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status === 'paid');
+    const outTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && t.status === 'paid');
     const benGroups = {};
     outTxs.forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
@@ -68,7 +68,7 @@ export function generateMonthlyReport() {
     });
 
     // Group pending/hold outgoing
-    const pendingOutTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && ['pending', 'hold'].includes(t.status));
+    const pendingOutTxs = transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && ['pending', 'hold'].includes(t.status));
     const pendingBenGroups = {};
     pendingOutTxs.forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
@@ -82,7 +82,7 @@ export function generateMonthlyReport() {
     els.repInBody.innerHTML = sortedSources.map(([name, data]) => `
         <tr style="border-bottom:1px solid var(--border-light);">
             <td style="font-weight:500;font-size:0.95rem;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">
-                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
+                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--success);margin-right:4px;"></span><span style="vertical-align:middle;">${escapeHTML(name)}</span>
             </td>
             <td class="text-right" style="color:var(--success-text);font-weight:500;">${fmtUSD(data.usd)}</td>
             <td class="text-right" style="font-weight:600;color:#111;">${fmtBDT(data.bdt)}</td>
@@ -99,7 +99,7 @@ export function generateMonthlyReport() {
     const paidRows = sortedBens.map(([name, data]) => `
         <tr style="border-bottom:1px solid var(--border-light);">
             <td style="font-weight:500;font-size:0.95rem;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">
-                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px;"></span><span style="vertical-align:middle;">${name}</span>
+                <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px;"></span><span style="vertical-align:middle;">${escapeHTML(name)}</span>
             </td>
             <td class="text-right" style="color:var(--danger-text);font-weight:500;">${fmtUSD(data.usd)}</td>
             <td class="text-right" style="font-weight:600;color:#111;">${fmtBDT(data.bdt)}</td>
@@ -112,7 +112,7 @@ export function generateMonthlyReport() {
         sortedPendingBens.map(([name, data]) => `
             <tr style="border-bottom:1px solid #fde68a;background:#fffbeb;">
                 <td style="font-weight:500;font-size:0.95rem;vertical-align:middle;max-width:140px;overflow:hidden;text-overflow:ellipsis;">
-                    <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span><span style="vertical-align:middle;color:#92400e;">${name}</span>
+                    <span style="display:inline-block;vertical-align:middle;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span><span style="vertical-align:middle;color:#92400e;">${escapeHTML(name)}</span>
                 </td>
                 <td class="text-right" style="color:#b45309;font-weight:500;">${fmtUSD(data.usd)}</td>
                 <td class="text-right" style="font-weight:600;color:#92400e;">${fmtBDT(data.bdt)}</td>
@@ -132,7 +132,7 @@ export function exportCEOReportCSV() {
     const monthName = new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
 
     const sourceGroups = {};
-    transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status !== 'hold').forEach(t => {
+    transactions.filter(t => t.type === 'incoming' && (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && t.status !== 'hold').forEach(t => {
         if (!sourceGroups[t.source]) sourceGroups[t.source] = { bdt: 0, usd: 0 };
         const b = parseFloat(t.amountBDT || 0), u = parseFloat(t.amountUSD || 0);
         if (t.subType === 'return') { sourceGroups[t.source].bdt -= b; sourceGroups[t.source].usd -= u; }
@@ -140,7 +140,7 @@ export function exportCEOReportCSV() {
     });
 
     const benGroups = {};
-    transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.status === 'paid').forEach(t => {
+    transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && t.status === 'paid').forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
         const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
         if (!benGroups[name]) benGroups[name] = { bdt: 0, usd: 0 };
@@ -149,7 +149,7 @@ export function exportCEOReportCSV() {
     });
 
     const pendingBenGroups = {};
-    transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && ['pending', 'hold'].includes(t.status)).forEach(t => {
+    transactions.filter(t => t.type === 'outgoing' && (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && ['pending', 'hold'].includes(t.status)).forEach(t => {
         const ben = beneficiaries.find(b => b.id === t.beneficiaryId);
         const name = ben ? ben.nickname || ben.name : (t.beneficiaryName || 'Unknown');
         if (!pendingBenGroups[name]) pendingBenGroups[name] = { bdt: 0, usd: 0 };
@@ -188,7 +188,7 @@ export function exportCEOReportCSV() {
 
 export function exportCSV(type) {
     const { transactions, selectedMonth } = store.state;
-    const txs = transactions.filter(t => t.type === type && (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth);
+    const txs = transactions.filter(t => t.type === type && (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth);
 
     if (txs.length === 0) { showToast('No data to export', 'error'); return; }
 
@@ -209,7 +209,13 @@ export function exportCSV(type) {
 }
 
 export function downloadFullBackup() {
-    const data = { state: store.state, exportDate: new Date().toISOString(), version: '1.0' };
+    const exportData = {
+        transactions: store.state.transactions,
+        beneficiaries: store.state.beneficiaries,
+        sources: store.state.sources,
+        settings: store.state.settings
+    };
+    const data = { state: exportData, exportDate: new Date().toISOString(), version: '1.0' };
     const json = JSON.stringify(data, null, 2);
     _triggerDownload(new Blob([json], { type: 'application/json' }), `zikrullah_tv_backup_${new Date().toISOString().slice(0, 10)}.json`);
     showToast('Backup downloaded successfully', 'success');
@@ -223,11 +229,11 @@ export function downloadBankStatement(transactions, beneficiaries, month, year) 
 
         if (month) {
             const targetPrefix = `${year}-${month}`;
-            filtered = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === targetPrefix).sort((a, b) => a.date.localeCompare(b.date));
+            filtered = transactions.filter(t => (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === targetPrefix).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
             title = `Account Statement - ${month}/${year}`;
             fileName = `statement_${year}_${month}.csv`;
         } else {
-            filtered = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+            filtered = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
         }
 
         if (filtered.length === 0) { showToast('No transactions found to download.', 'info'); return; }

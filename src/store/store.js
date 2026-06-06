@@ -143,7 +143,8 @@ class Store {
 
         this.state.transactions.forEach(tx => {
             // Priority: Explicit Accounting Month -> Derived from Transaction Date
-            const txMonth = tx.accountingMonth || tx.date.slice(0, 7);
+            const txMonth = tx.accountingMonth || (tx.date ? tx.date.slice(0, 7) : '');
+            if (!txMonth) return;
 
             // Robust parsing
             const amountUSD = Number(tx.amountUSD) || 0;
@@ -217,8 +218,8 @@ class Store {
 
         // Fallback if result is 0, Infinity, or NaN
         if (!isFinite(averageBuyRate) || averageBuyRate <= 0) {
-            const lastIncomingTx = [...this.state.transactions].reverse().find(t => t.type === 'incoming' && t.rate > 0);
-            averageBuyRate = lastIncomingTx ? lastIncomingTx.rate : (this.state.settings.lastRate || 0);
+            const lastIncomingTx = [...this.state.transactions].reverse().find(t => t.type === 'incoming' && parseFloat(t.rate) > 0);
+            averageBuyRate = lastIncomingTx ? parseFloat(lastIncomingTx.rate) : (parseFloat(this.state.settings.lastRate) || 0);
         }
 
         // Implied rate = actual BDT/USD ratio of current balance (for dashboard display)
@@ -255,7 +256,7 @@ class Store {
         // Only save lastRate from incoming receipts — outgoing rate is irrelevant for avg rate fallback
         if (tx.type === 'incoming' && tx.subType !== 'return' && tx.rate) {
             const newSettings = { ...this.state.settings, lastRate: tx.rate };
-            db.saveSettings(newSettings);
+            await db.saveSettings(newSettings);
         }
     }
 

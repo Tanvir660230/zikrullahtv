@@ -68,7 +68,7 @@ export function editTransaction(id) {
         els.incomingModal.classList.add('open');
         els.incId.value = tx.id;
         els.incDate.value = tx.date;
-        els.incAccMonth.value = tx.accountingMonth || tx.date.slice(0, 7);
+        els.incAccMonth.value = tx.accountingMonth || (tx.date ? tx.date.slice(0, 7) : '');
         els.incType.value = tx.subType;
         els.incSource.value = tx.source;
         els.incRate.value = tx.rate;
@@ -78,7 +78,7 @@ export function editTransaction(id) {
         els.outgoingModal.classList.add('open');
         els.outId.value = tx.id;
         els.outDate.value = tx.date;
-        els.outAccMonth.value = tx.accountingMonth || tx.date.slice(0, 7);
+        els.outAccMonth.value = tx.accountingMonth || (tx.date ? tx.date.slice(0, 7) : '');
         els.outBeneficiary.value = tx.beneficiaryId;
         const editBen = store.state.beneficiaries.find(b => b.id === tx.beneficiaryId);
         if (editBen) {
@@ -99,7 +99,7 @@ export function cloneTransaction(id) {
 
     if (tx.type === 'incoming') {
         els.incDate.value = new Date().toISOString().split('T')[0];
-        els.incAccMonth.value = tx.accountingMonth || store.state.selectedMonth;
+        els.incAccMonth.value = store.state.selectedMonth;
         els.incType.value = tx.subType;
         els.incSource.value = tx.source;
         els.incRate.value = tx.rate;
@@ -109,8 +109,9 @@ export function cloneTransaction(id) {
         els.incomingModal.classList.add('open');
     } else {
         els.outDate.value = new Date().toISOString().split('T')[0];
-        els.outAccMonth.value = tx.accountingMonth || store.state.selectedMonth;
+        els.outAccMonth.value = store.state.selectedMonth;
         els.outBeneficiary.value = tx.beneficiaryId;
+        els.outBeneficiary.dispatchEvent(new Event('change'));
         els.outRate.value = tx.rate;
         els.outUSD.value = tx.amountUSD;
         els.outBDT.value = tx.amountBDT;

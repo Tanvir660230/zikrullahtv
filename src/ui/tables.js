@@ -1,5 +1,5 @@
 import { store } from '../store/store.js';
-import { fmtUSD, fmtBDT } from '../utils/utils.js';
+import { fmtUSD, fmtBDT, escapeHTML } from '../utils/utils.js';
 import { els } from './elements.js';
 
 export function populateHistYears() {
@@ -18,7 +18,7 @@ export function populateHistYears() {
 }
 
 export function renderTables(transactions, beneficiaries, selectedMonth, sortConfig) {
-    const monthlyTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth);
+    const monthlyTxs = transactions.filter(t => (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth);
 
     const headers = document.querySelectorAll('th.sortable');
     headers.forEach(h => {
@@ -99,8 +99,8 @@ export function renderTables(transactions, beneficiaries, selectedMonth, sortCon
             const tr = document.createElement('tr');
             tr.className = `status-${tx.status || 'received'} type-${tx.subType}`;
             tr.innerHTML = `
-                <td data-label="Date">${tx.date}</td>
-                <td data-label="Payer">${tx.source}</td>
+                <td data-label="Date">${escapeHTML(tx.date || '')}</td>
+                <td data-label="Payer">${escapeHTML(tx.source || '-')}</td>
                 <td data-label="Action"><span class="badge ${tx.subType === 'receive' ? 'bg-green-light text-green' : 'bg-orange-light text-orange'}">${tx.subType === 'receive' ? 'Receive' : 'Return'}</span></td>
                 <td data-label="Amount (USD)" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
                 <td data-label="Amount (BDT)" class="amount-column">
@@ -111,7 +111,7 @@ export function renderTables(transactions, beneficiaries, selectedMonth, sortCon
                         </button>
                     </div>
                 </td>
-                <td data-label="Rate" class="text-right">${(tx.rate || 0).toFixed(2)}</td>
+                <td data-label="Rate" class="text-right">${(parseFloat(tx.rate) || 0).toFixed(2)}</td>
                 <td data-label="Status"><span class="badge ${tx.status === 'hold' ? 'bg-orange-light text-orange' : 'bg-green-light text-green'}">${tx.status || 'received'}</span></td>
                 <td class="actions-cell">
                    <button class="icon-btn edit-tx-btn" data-id="${tx.id}" title="Edit">
@@ -181,9 +181,9 @@ export function renderTables(transactions, beneficiaries, selectedMonth, sortCon
             const tr = document.createElement('tr');
             tr.className = `status-${tx.status}`;
             tr.innerHTML = `
-                <td data-label="Date">${tx.date}</td>
+                <td data-label="Date">${escapeHTML(tx.date)}</td>
                 <td data-label="Receiver">
-                    <span class="receiver-link" data-id="${tx.beneficiaryId}" style="cursor:pointer;text-decoration:underline;">${benName}</span>
+                    <span class="receiver-link" data-id="${tx.beneficiaryId}" style="cursor:pointer;text-decoration:underline;">${escapeHTML(benName)}</span>
                     ${isUnknown ? `<button class="fix-name-btn icon-btn" data-id="${tx.id}" title="Fix Name" style="font-size:0.7rem;padding:2px 7px;margin-left:4px;background:var(--brand-light);border:none;color:var(--brand-primary);border-radius:4px;cursor:pointer;">✏ Fix</button>` : ''}
                 </td>
                 <td data-label="Amount (USD)" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
@@ -212,9 +212,9 @@ export function renderTables(transactions, beneficiaries, selectedMonth, sortCon
 
 export function renderHistoryTable(transactions, beneficiaries, query = '', filterMonth = '', filterYear = String(new Date().getFullYear())) {
     const q = query.toLowerCase().trim();
-    const txMonth = t => t.accountingMonth || t.date.slice(0, 7);
+    const txMonth = t => t.accountingMonth || (t.date ? t.date.slice(0, 7) : '');
 
-    const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date));
+    const sorted = [...transactions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     let filtered = sorted;
 
     if (filterMonth) {
@@ -258,7 +258,7 @@ export function renderHistoryTable(transactions, beneficiaries, query = '', filt
             <td data-label="Identity">${identity}</td>
             <td data-label="USD" class="amount-column">${fmtUSD(tx.amountUSD)}</td>
             <td data-label="BDT" class="amount-column font-bold">${fmtBDT(tx.amountBDT)}</td>
-            <td data-label="Rate" class="text-right">${(tx.rate || 0).toFixed(2)}</td>
+            <td data-label="Rate" class="text-right">${(parseFloat(tx.rate) || 0).toFixed(2)}</td>
             <td class="actions-cell">
                 <button class="icon-btn edit-tx-btn-hist" data-id="${tx.id}" title="Edit">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>

@@ -58,30 +58,34 @@ export function render(state) {
     els.statsReceiversCount.textContent = state.beneficiaries.length;
 
     // Rebuild Payers Dropdown
-    const currentSource = els.incSource.value;
-    els.incSource.innerHTML = '';
-    const defOpt = document.createElement('option');
-    defOpt.value = ''; defOpt.textContent = 'Select Payer';
-    els.incSource.appendChild(defOpt);
-    state.sources.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.name; opt.textContent = s.name;
-        els.incSource.appendChild(opt);
-    });
-    if (currentSource) els.incSource.value = currentSource;
+    if (els.incSource) {
+        const currentSource = els.incSource.value;
+        els.incSource.innerHTML = '';
+        const defOpt = document.createElement('option');
+        defOpt.value = ''; defOpt.textContent = 'Select Payer';
+        els.incSource.appendChild(defOpt);
+        state.sources.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.name; opt.textContent = s.name;
+            els.incSource.appendChild(opt);
+        });
+        if (currentSource) els.incSource.value = currentSource;
+    }
 
     // Rebuild Receivers Dropdown
-    const currentBenVal = els.outBeneficiary.value;
-    els.outBeneficiary.innerHTML = '';
-    const defBenOpt = document.createElement('option');
-    defBenOpt.value = ''; defBenOpt.textContent = 'Select Receiver';
-    els.outBeneficiary.appendChild(defBenOpt);
-    state.beneficiaries.forEach(ben => {
-        const opt = document.createElement('option');
-        opt.value = ben.id; opt.textContent = ben.nickname || ben.name;
-        els.outBeneficiary.appendChild(opt);
-    });
-    if (currentBenVal) els.outBeneficiary.value = currentBenVal;
+    if (els.outBeneficiary) {
+        const currentBenVal = els.outBeneficiary.value;
+        els.outBeneficiary.innerHTML = '';
+        const defBenOpt = document.createElement('option');
+        defBenOpt.value = ''; defBenOpt.textContent = 'Select Receiver';
+        els.outBeneficiary.appendChild(defBenOpt);
+        state.beneficiaries.forEach(ben => {
+            const opt = document.createElement('option');
+            opt.value = ben.id; opt.textContent = ben.nickname || ben.name;
+            els.outBeneficiary.appendChild(opt);
+        });
+        if (currentBenVal) els.outBeneficiary.value = currentBenVal;
+    }
 
     renderTables(state.transactions, state.beneficiaries, state.selectedMonth, state.sortConfig);
     renderProjectedCashflow(state.transactions, state.liquidity, state.selectedMonth);
@@ -168,7 +172,15 @@ export function renderBeneficiariesList(beneficiaries) {
 
         const tdBank = document.createElement('td');
         tdBank.setAttribute('data-label', 'Bank');
-        tdBank.innerHTML = `<div style="font-weight:500;">${b.bankName || '-'}</div><div class="text-sub" style="font-size:0.8rem;">${b.branch || ''}</div>`;
+        const bankNameDiv = document.createElement('div');
+        bankNameDiv.style.fontWeight = '500';
+        bankNameDiv.textContent = b.bankName || '-';
+        const branchDiv = document.createElement('div');
+        branchDiv.className = 'text-sub';
+        branchDiv.style.fontSize = '0.8rem';
+        branchDiv.textContent = b.branch || '';
+        tdBank.appendChild(bankNameDiv);
+        tdBank.appendChild(branchDiv);
 
         const tdAccNo = document.createElement('td');
         tdAccNo.setAttribute('data-label', 'Account No');
@@ -203,7 +215,7 @@ export function renderBeneficiariesList(beneficiaries) {
 }
 
 export function calculatePaymentSummary(transactions, beneficiaries, selectedMonth) {
-    const monthlyTxs = transactions.filter(t => (t.accountingMonth || t.date.slice(0, 7)) === selectedMonth && t.type === 'outgoing');
+    const monthlyTxs = transactions.filter(t => (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === selectedMonth && t.type === 'outgoing');
     let pendingCount = 0, pendingAmount = 0, paidCount = 0, paidAmount = 0;
     monthlyTxs.forEach(tx => {
         if (tx.status === 'paid') { paidCount++; paidAmount += (tx.amountBDT || 0); }
@@ -216,7 +228,7 @@ export function renderProjectedCashflow(transactions, liquidity, selectedMonth) 
     const container = document.getElementById('cashflowSummary');
     if (!container) return;
 
-    const txMonth = t => t.accountingMonth || t.date.slice(0, 7);
+    const txMonth = t => t.accountingMonth || (t.date ? t.date.slice(0, 7) : '');
 
     const pendingOutTxs = transactions.filter(t => t.type === 'outgoing' && (t.status === 'pending' || t.status === 'hold') && txMonth(t) === selectedMonth);
     let pendingOutBDT = 0, pendingOutUSD = 0;

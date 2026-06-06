@@ -1,4 +1,4 @@
-﻿import { store } from './store/store.js';
+import { store } from './store/store.js';
 import { fmtUSD, fmtBDT, showToast, debounce } from './utils/utils.js';
 
 // --- Modular Imports (New split structure) ---
@@ -67,11 +67,6 @@ function showPrompt(message, { title = 'Enter Value', placeholder = '', defaultV
         document.addEventListener('keydown', keydown);
     });
 }
-import { render, renderSourcesList, renderBeneficiariesList } from './ui/render.js';
-import { renderTables, renderHistoryTable, populateHistYears } from './ui/tables.js';
-import { setupSmartCalc, editTransaction, cloneTransaction, openBeneficiaryModal } from './ui/forms.js';
-import { generateMonthlyReport, exportCEOReportCSV, exportCSV, downloadFullBackup, downloadBankStatement } from './ui/report.js';
-import { copyToClipboard } from './utils/clipboard.js';
 
 // --- Responsive Layout ---
 function setupResponsiveLayout() {
@@ -117,14 +112,14 @@ async function initApp() {
         populateMonthSelect();
 
         const today = new Date().toISOString().split('T')[0];
-        els.incDate.value = today;
-        els.outDate.value = today;
-        els.incAccMonth.value = today.slice(0, 7);
-        els.outAccMonth.value = today.slice(0, 7);
+        if (els.incDate) els.incDate.value = today;
+        if (els.outDate) els.outDate.value = today;
+        if (els.incAccMonth) els.incAccMonth.value = today.slice(0, 7);
+        if (els.outAccMonth) els.outAccMonth.value = today.slice(0, 7);
 
         const [currYear, currMonth] = today.slice(0, 7).split('-');
-        els.yearInput.value = currYear;
-        els.monthSelect.value = currMonth;
+        if (els.yearInput) els.yearInput.value = currYear;
+        if (els.monthSelect) els.monthSelect.value = currMonth;
 
         updateStoreDate();
         setupEventListeners();
@@ -362,7 +357,8 @@ function setupEventListeners() {
     els.loginForm?.addEventListener('submit', (e) => {
         e.preventDefault();
         const pwd = els.loginPassword.value;
-        if (pwd === 'admin123#') {
+        // Basic obfuscation for 'admin123#' to avoid plain text password in source
+        if (btoa(pwd) === 'YWRtaW4xMjMj') {
             localStorage.setItem('isAuth', 'true');
             checkLoginStatus();
             showToast('Access Granted', 'success');
@@ -875,6 +871,7 @@ function setupEventListeners() {
             els.incomingForm.reset();
             els.incId.value = '';
             els.incDate.value = new Date().toISOString().split('T')[0];
+            els.incAccMonth.value = store.state.selectedMonth;
         } catch (error) {
             console.error('Error saving transaction:', error);
             showToast('Failed to save record: ' + error.message, 'error');
@@ -943,7 +940,7 @@ function setupEventListeners() {
     });
 
     // Beneficiary Selection
-    els.outBeneficiary?.addEventListener('change', () => {
+    els.outBeneficiary?.addEventListener('change', async () => {
         const benId = els.outBeneficiary.value;
         const ben = store.state.beneficiaries.find(b => b.id === benId);
 
@@ -961,13 +958,13 @@ function setupEventListeners() {
             String(t.beneficiaryId) === String(benId) &&
             t.type === 'outgoing' &&
             ['pending', 'hold'].includes((t.status || '').toLowerCase()) &&
-            (t.accountingMonth || t.date.slice(0, 7)) === store.state.selectedMonth
+            (t.accountingMonth || (t.date ? t.date.slice(0, 7) : '')) === store.state.selectedMonth
         );
 
         const fillRate = store.state.liquidity.impliedRate || store.state.liquidity.averageBuyRate || 0;
 
         if (existingUnpaid) {
-            const load = await showConfirm("Found a pending payment of $${existingUnpaid.amountUSD} / u{09F3}${existingUnpaid.amountBDT} for this receiver.\n\nLoad and update the existing entry?", { title: 'Existing Pending Payment', okLabel: 'Load & Update' });
+            const load = await showConfirm(`Found a pending payment of $${existingUnpaid.amountUSD} / ৳${existingUnpaid.amountBDT} for this receiver.\n\nLoad and update the existing entry?`, { title: 'Existing Pending Payment', okLabel: 'Load & Update' });
             if (load) {
                 // MERGE MODE â€” load stored values directly, no recalculation (avoids corrupting saved data)
                 els.outId.value = existingUnpaid.id;
@@ -1057,16 +1054,29 @@ function setupEventListeners() {
             const id = payBtn.dataset.id;
             const ok = await showConfirm('Mark this transaction as PAID?', { title: 'Confirm Payment', okLabel: 'Mark Paid' });
             if (ok) {
-                showToast('Transaction marked as Paid', 'success');
+                try {
+                    await store.updateTransaction(id, { status: 'paid' });
+                    showToast('Transaction marked as Paid', 'success');
+                } catch (err) {
+                    showToast('Failed to mark as paid: ' + err.message, 'error');
+                }
             }
         } else if (holdBtn) {
             const id = holdBtn.dataset.id;
-            await store.updateTransaction(id, { status: 'hold' });
-            showToast('Transaction put on Hold', 'success');
+            try {
+                await store.updateTransaction(id, { status: 'hold' });
+                showToast('Transaction put on Hold', 'success');
+            } catch (err) {
+                showToast('Failed to put on hold: ' + err.message, 'error');
+            }
         } else if (resumeBtn) {
             const id = resumeBtn.dataset.id;
-            await store.updateTransaction(id, { status: 'pending' });
-            showToast('Transaction Resumed', 'success');
+            try {
+                await store.updateTransaction(id, { status: 'pending' });
+                showToast('Transaction Resumed', 'success');
+            } catch (err) {
+                showToast('Failed to resume: ' + err.message, 'error');
+            }
         } else if (editTxBtn) {
             editTransaction(editTxBtn.dataset.id);
         } else if (cloneBtn) {
@@ -1075,8 +1085,9 @@ function setupEventListeners() {
             const id = deleteTxBtn.dataset.id;
             const tx = store.state.transactions.find(t => t.id === id);
             const label = tx?.beneficiaryName || store.state.beneficiaries.find(b => b.id === tx?.beneficiaryId)?.nickname || 'this transaction';
-            const delOk = await showConfirm(Delete "${label}"?\n\nThis cannot be undone., { title: 'Delete Transaction', okLabel: 'Delete', isDanger: true });
+            const delOk = await showConfirm(`Delete "${label}"?\n\nThis cannot be undone.`, { title: 'Delete Transaction', okLabel: 'Delete', isDanger: true });
             if (delOk) {
+                try {
                     await store.deleteTransaction(id);
                     showToast('Transaction deleted', 'success');
                 } catch (err) {
